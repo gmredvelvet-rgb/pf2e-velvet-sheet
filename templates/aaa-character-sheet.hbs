@@ -1,0 +1,791 @@
+<div class="dnd-sheet">
+  <div class="bg" data-bg="{{bgImage}}"></div>
+
+  <div class="layout">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="aaa-sidebar">
+      <div class="char-quick-info">
+        <div class="char-name">{{actor.name}}</div>
+        <div class="char-class">{{className}}</div>
+        <div class="char-race">{{ancestryName}} {{heritageName}}</div>
+        <div class="char-level">
+          Level <input type="number" class="level-input" name="system.details.level.value" value="{{level}}" min="0" max="30">
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <div class="nav-item active" data-tab="attributes">
+          <i class="fas fa-shield-alt"></i><span>Attributes</span>
+        </div>
+        <div class="nav-item" data-tab="skills">
+          <i class="fas fa-running"></i><span>Skills</span>
+        </div>
+        <div class="nav-item" data-tab="actions">
+          <i class="fas fa-fist-raised"></i><span>Actions</span>
+        </div>
+        <div class="nav-item" data-tab="inventory">
+          <i class="fas fa-suitcase"></i><span>Inventory</span>
+        </div>
+        <div class="nav-item" data-tab="spells">
+          <i class="fas fa-hat-wizard"></i><span>Spells</span>
+        </div>
+        <div class="nav-item" data-tab="feats">
+          <i class="fas fa-star"></i><span>Feats</span>
+        </div>
+        <div class="nav-item" data-tab="biography">
+          <i class="fas fa-scroll"></i><span>Biography</span>
+        </div>
+        <div class="nav-item" data-tab="effects">
+          <i class="fas fa-bolt"></i><span>Effects</span>
+        </div>
+      </nav>
+
+      <div class="quick-actions">
+        <button class="rest-action" data-rest="long" title="Rest for the Night"><i class="fas fa-bed"></i></button>
+        <button class="initiative-roll" title="Roll Initiative"><i class="fas fa-fist-raised"></i></button>
+        <button class="bg-picker" title="Change Background"><i class="fas fa-image"></i></button>
+      </div>
+    </div>
+
+    <!-- CENTER: Full Body Portrait -->
+    <div class="center">
+      <div class="portrait-wrap">
+        <img class="portrait" src="{{actor.img}}" title="Click to change portrait">
+        <div class="portrait-vignette"></div>
+
+        <!-- Hero Points -->
+        <div class="hero-points-badge" title="Hero Points (Click: spend, Right-click: gain)">
+          {{#each heroPoints.pips}}
+          <span class="hero-pip {{#if this.filled}}filled{{/if}}" title="Hero Point"><i class="fas fa-star"></i></span>
+          {{/each}}
+        </div>
+
+        <!-- Paper Doll Toggle Button -->
+        <div class="paperdoll-toggle" title="Toggle Paper Doll">
+          <i class="fas fa-tshirt"></i>
+        </div>
+
+        <!-- Paper Doll Overlay -->
+        <div class="paperdoll-overlay">
+          <div class="pd-gradient"></div>
+          <div class="pd-layout">
+            <div class="pd-col pd-left">
+              {{#each paperDoll.left}}
+              {{#with (lookup ../paperDoll.slots this)}}
+              <div class="pd-slot {{#if this.empty}}pd-empty{{/if}}" data-slot="{{this.key}}" data-item-id="{{this.itemId}}" title="{{this.itemName}}&#10;Click: equip/edit · Right-click: unequip · Drag: equip">
+                <img src="{{this.img}}">
+                <span class="pd-slot-label">{{this.label}}</span>
+              </div>
+              {{/with}}
+              {{/each}}
+            </div>
+            <div class="pd-col pd-center-spacer">
+              <div class="pd-actions">
+                <button class="pd-btn pd-unequip-all" title="Unequip All"><i class="fas fa-times-circle"></i></button>
+              </div>
+            </div>
+            <div class="pd-col pd-right">
+              {{#each paperDoll.right}}
+              {{#with (lookup ../paperDoll.slots this)}}
+              <div class="pd-slot {{#if this.empty}}pd-empty{{/if}}" data-slot="{{this.key}}" data-item-id="{{this.itemId}}" title="{{this.itemName}}&#10;Click: equip/edit · Right-click: unequip · Drag: equip">
+                <img src="{{this.img}}">
+                <span class="pd-slot-label">{{this.label}}</span>
+              </div>
+              {{/with}}
+              {{/each}}
+            </div>
+          </div>
+          <div class="pd-bottom">
+            {{#each paperDoll.bottom}}
+            {{#with (lookup ../paperDoll.slots this)}}
+            <div class="pd-slot {{#if this.empty}}pd-empty{{/if}}" data-slot="{{this.key}}" data-item-id="{{this.itemId}}" title="{{this.itemName}}&#10;Click: equip/edit · Right-click: unequip · Drag: equip">
+              <img src="{{this.img}}">
+              <span class="pd-slot-label">{{this.label}}</span>
+            </div>
+            {{/with}}
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="aaa-panel">
+
+      <!-- ATTRIBUTES TAB -->
+      <div class="tab active" data-tab="attributes">
+        <h2>Attributes</h2>
+
+        <div class="attr-quick-row">
+          <div class="attr-quick-box">
+            <span class="attr-quick-val">{{ac}}</span>
+            <span class="attr-quick-lbl">AC</span>
+          </div>
+          <div class="attr-quick-box perception-roll" title="Roll Perception">
+            <span class="attr-quick-val">{{perceptionStr}}</span>
+            <span class="attr-quick-lbl">Perception</span>
+          </div>
+          <div class="attr-quick-box">
+            <span class="attr-quick-val">{{speed.land}}</span>
+            <span class="attr-quick-lbl">Speed</span>
+          </div>
+          <div class="attr-quick-box initiative-roll" title="Roll Initiative">
+            <span class="attr-quick-val">Lvl {{level}}</span>
+            <span class="attr-quick-lbl">Initiative</span>
+          </div>
+        </div>
+
+        <!-- Other Speeds -->
+        {{#if speed.otherSpeeds.length}}
+        <div class="other-speeds">
+          {{#each speed.otherSpeeds}}
+          <span class="speed-tag">{{this.label}} {{this.value}} ft</span>
+          {{/each}}
+        </div>
+        {{/if}}
+
+        <div class="main-stats">
+          {{#each abilities}}
+          <div class="stat" data-ability="{{this.key}}" title="Click to roll {{this.fullLabel}} check">
+            <span class="stat-label">{{this.label}}</span>
+            {{#if ../isManualMode}}
+            <input type="number" class="ability-input" name="system.abilities.{{this.key}}.value" value="{{this.value}}" data-ability="{{this.key}}">
+            {{else}}
+            <span class="stat-value">{{this.value}}</span>
+            {{/if}}
+            <span class="stat-mod">{{this.modStr}}</span>
+            {{#if (eq this.key ../keyAbility)}}<span class="key-ability-tag" title="Key Ability">★</span>{{/if}}
+          </div>
+          {{/each}}
+        </div>
+
+        {{#if isEditable}}
+        <div class="attribute-controls">
+          <button class="edit-boosts-btn" title="Edit Ability Boosts"><i class="fas fa-chart-bar"></i> Edit Attribute Boosts</button>
+          <label class="manual-toggle" title="Manual Mode: directly edit ability scores">
+            <input type="checkbox" class="manual-mode-toggle" {{#if isManualMode}}checked{{/if}}>
+            <span>Manual Mode</span>
+          </label>
+          {{#unless attributeBoostsAllocated}}<span class="boost-warning"><i class="fas fa-exclamation-triangle"></i> Unallocated boosts</span>{{/unless}}
+        </div>
+        {{/if}}
+
+        <div class="hp-section">
+          <div class="hp-bar-container">
+            <div class="hp-bar">
+              <div class="hp-fill" style="width: {{hp.pct}}%"></div>
+              <div class="hp-text">
+                <span class="hp-label">HP</span>
+                {{#if isEditable}}
+                <input type="number" class="hp-input" value="{{hp.value}}" min="0">
+                {{else}}
+                <span>{{hp.value}}</span>
+                {{/if}}
+                <span class="hp-sep">/</span>
+                <span>{{hp.max}}</span>
+                {{#if hp.temp}}<span class="hp-temp">+{{hp.temp}}</span>{{/if}}
+              </div>
+            </div>
+          </div>
+          {{#if isEditable}}
+          <div class="hp-temp-section">
+            <label>Temp HP</label>
+            <input type="number" class="hp-temp-input" value="{{hp.temp}}" min="0" placeholder="0">
+          </div>
+          {{/if}}
+        </div>
+
+        <div class="conditions-bar">
+          <div class="condition-tracker dying-tracker" title="Dying (Click: +1 · Right-click: -1)">
+            <span class="condition-label">Dying</span>
+            <div class="condition-pips">
+              {{#each dying.pips}}
+              <span class="condition-pip dying-pip {{#if this.filled}}filled{{/if}}" data-condition="dying"><i class="fas fa-skull"></i></span>
+              {{/each}}
+            </div>
+            <span class="condition-val">{{dying.value}}/{{dying.max}}</span>
+          </div>
+          <div class="condition-tracker wounded-tracker" title="Wounded (Click: +1 · Right-click: -1)">
+            <span class="condition-label">Wounded</span>
+            <div class="condition-pips">
+              {{#each wounded.pips}}
+              <span class="condition-pip wounded-pip {{#if this.filled}}filled{{/if}}" data-condition="wounded"><i class="fas fa-heart-broken"></i></span>
+              {{/each}}
+            </div>
+            <span class="condition-val">{{wounded.value}}/{{wounded.max}}</span>
+          </div>
+          <div class="condition-tracker doomed-tracker" title="Doomed (Click: +1 · Right-click: -1)">
+            <span class="condition-label">Doomed</span>
+            <div class="condition-pips">
+              {{#each doomed.pips}}
+              <span class="condition-pip doomed-pip {{#if this.filled}}filled{{/if}}" data-condition="doomed"><i class="fas fa-hourglass-half"></i></span>
+              {{/each}}
+            </div>
+            <span class="condition-val">{{doomed.value}}/{{doomed.max}}</span>
+          </div>
+        </div>
+
+        <div class="xp-section">
+          <div class="xp-bar">
+            <div class="xp-fill" style="width: {{xpPct}}%"></div>
+            <div class="xp-text">
+              <span class="xp-label">XP</span>
+              {{#if isEditable}}
+              <input type="number" class="xp-input" value="{{xp.value}}" min="0">
+              {{else}}
+              <span>{{xp.value}}</span>
+              {{/if}}
+              <span class="xp-sep">/ {{xp.max}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Focus Points -->
+        {{#if focusPoints.hasFocus}}
+        <div class="focus-section">
+          <h3>Focus Points</h3>
+          <div class="focus-pips">
+            {{#each focusPoints.pips}}
+            <span class="focus-pip {{#if this.filled}}filled{{/if}}" title="Click: spend · Right-click: restore"><i class="fas fa-fire"></i></span>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+
+        <!-- Saves -->
+        <div class="saves-section">
+          <h3>Saving Throws</h3>
+          {{#each saves}}
+          <div class="save-row" data-save="{{this.key}}" title="Click to roll {{this.label}} Save">
+            <span class="save-rank rank-{{this.rank}}"><i class="fas fa-diamond"></i></span>
+            <span class="save-label">{{this.label}}</span>
+            <span class="save-rank-label rank-{{this.rank}}">{{this.rankLabel}}</span>
+            <span class="save-value">{{this.modStr}}</span>
+          </div>
+          {{/each}}
+        </div>
+
+        <!-- Class DC -->
+        {{#if classDC}}
+        <div class="class-dc-section">
+          <h3>Class DC</h3>
+          <div class="class-dc-row">
+            <span class="class-dc-rank rank-{{classDC.rank}}"><i class="fas fa-diamond"></i></span>
+            <span class="class-dc-label">{{classDC.label}}</span>
+            <span class="class-dc-rank-label rank-{{classDC.rank}}">{{classDC.rankLabel}}</span>
+            <span class="class-dc-value">{{classDC.value}}</span>
+          </div>
+        </div>
+        {{/if}}
+
+        <!-- Senses -->
+        {{#if senses.length}}
+        <div class="senses-section">
+          <h3>Senses</h3>
+          {{#each senses}}
+          <div class="sense">{{this.label}}{{#if this.range}} {{this.range}} ft{{/if}}</div>
+          {{/each}}
+        </div>
+        {{/if}}
+
+        <!-- IWR (Immunities, Weaknesses, Resistances) -->
+        {{#if immunities.length}}
+        <div class="traits-section">
+          <h3>Immunities</h3>
+          <div class="trait-tags">{{#each immunities}}<span class="trait-tag">{{this}}</span>{{/each}}</div>
+        </div>
+        {{/if}}
+        {{#if resistances.length}}
+        <div class="traits-section">
+          <h3>Resistances</h3>
+          <div class="trait-tags">{{#each resistances}}<span class="trait-tag">{{this}}</span>{{/each}}</div>
+        </div>
+        {{/if}}
+        {{#if weaknesses.length}}
+        <div class="traits-section">
+          <h3>Weaknesses</h3>
+          <div class="trait-tags">{{#each weaknesses}}<span class="trait-tag">{{this}}</span>{{/each}}</div>
+        </div>
+        {{/if}}
+
+        <!-- ABC Items -->
+        <div class="abc-section">
+          <h3>Character</h3>
+          {{#if classItem}}
+          <div class="class-entry abc-edit" data-item-id="{{classItem.id}}">
+            <img class="class-img" src="{{classItem.img}}">
+            <span class="class-name">{{classItem.name}}</span>
+          </div>
+          {{/if}}
+          {{#if ancestryItem}}
+          <div class="class-entry abc-edit" data-item-id="{{ancestryItem.id}}">
+            <img class="class-img" src="{{ancestryItem.img}}">
+            <span class="class-name">{{ancestryItem.name}}</span>
+          </div>
+          {{/if}}
+          {{#if heritageItem}}
+          <div class="class-entry abc-edit" data-item-id="{{heritageItem.id}}">
+            <img class="class-img" src="{{heritageItem.img}}">
+            <span class="class-name">{{heritageItem.name}}</span>
+          </div>
+          {{/if}}
+          {{#if backgroundItem}}
+          <div class="class-entry abc-edit" data-item-id="{{backgroundItem.id}}">
+            <img class="class-img" src="{{backgroundItem.img}}">
+            <span class="class-name">{{backgroundItem.name}}</span>
+          </div>
+          {{/if}}
+          {{#if deityItem}}
+          <div class="class-entry abc-edit" data-item-id="{{deityItem.id}}">
+            <img class="class-img" src="{{deityItem.img}}">
+            <span class="class-name">{{deityItem.name}}</span>
+          </div>
+          {{/if}}
+        </div>
+
+        <!-- Languages -->
+        {{#if languages.length}}
+        <div class="proficiencies-section">
+          <h3>Languages</h3>
+          <div class="trait-tags">{{#each languages}}<span class="trait-tag">{{this}}</span>{{/each}}</div>
+        </div>
+        {{/if}}
+
+        <!-- Bulk / Encumbrance -->
+        {{#if bulk.max}}
+        <div class="encumbrance-section">
+          <h3>Bulk</h3>
+          <div class="enc-bar">
+            <div class="enc-fill {{#if bulk.isEncumbered}}encumbered{{/if}}" style="width: {{bulk.pct}}%"></div>
+            <div class="enc-text">{{bulk.value}} / {{bulk.max}} Bulk</div>
+          </div>
+        </div>
+        {{/if}}
+      </div>
+
+      <!-- SKILLS TAB -->
+      <div class="tab" data-tab="skills">
+        <h2>Skills</h2>
+        <div class="skill-list">
+          {{#each skills}}
+          <div class="skill-row" data-skill="{{this.key}}" title="Click to roll {{this.label}}">
+            <span class="skill-prof rank-{{this.rank}}" title="{{this.rankLabel}}"><i class="fas fa-diamond"></i></span>
+            <span class="skill-name">{{this.label}}</span>
+            {{#if this.lore}}<span class="skill-lore-tag">Lore</span>{{/if}}
+            {{#if ../isEditable}}
+            <select class="skill-rank-select rank-{{this.rank}}" data-skill="{{this.key}}" data-is-lore="{{this.lore}}" title="Change proficiency rank">
+              <option value="0" {{#if (eq this.rank 0)}}selected{{/if}}>Untrained</option>
+              <option value="1" {{#if (eq this.rank 1)}}selected{{/if}}>Trained</option>
+              <option value="2" {{#if (eq this.rank 2)}}selected{{/if}}>Expert</option>
+              <option value="3" {{#if (eq this.rank 3)}}selected{{/if}}>Master</option>
+              <option value="4" {{#if (eq this.rank 4)}}selected{{/if}}>Legendary</option>
+            </select>
+            {{else}}
+            <span class="skill-rank-label rank-{{this.rank}}">{{this.rankLabel}}</span>
+            {{/if}}
+            {{#if this.attribute}}<span class="skill-attr-tag">{{this.attribute}}</span>{{/if}}
+            <span class="skill-total">{{this.modStr}}</span>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+
+      <!-- ACTIONS TAB -->
+      <div class="tab" data-tab="actions">
+        <h2>Actions</h2>
+
+        <!-- Strikes -->
+        {{#if strikes.length}}
+        <div class="strikes-section">
+          <h3>Strikes</h3>
+          {{#each strikes}}
+          <div class="strike-entry" data-strike-idx="{{@index}}">
+            <img class="strike-img" src="{{this.img}}">
+            <div class="strike-info">
+              <span class="strike-name">{{this.label}}</span>
+              <span class="strike-mod">{{this.modStr}}</span>
+              {{#if this.traits}}<span class="strike-traits">{{this.traits}}</span>{{/if}}
+            </div>
+            <div class="strike-controls">
+              <button class="strike-attack" data-strike-idx="{{@index}}" data-variant="0" title="Strike (1st attack)">
+                <i class="fas fa-dice-d20"></i>
+              </button>
+              <button class="strike-attack strike-map" data-strike-idx="{{@index}}" data-variant="1" title="2nd Attack (MAP)">
+                <i class="fas fa-dice-d20"></i><span class="map-label">2</span>
+              </button>
+              <button class="strike-attack strike-map" data-strike-idx="{{@index}}" data-variant="2" title="3rd Attack (MAP)">
+                <i class="fas fa-dice-d20"></i><span class="map-label">3</span>
+              </button>
+              <button class="strike-damage" data-strike-idx="{{@index}}" title="Damage">
+                <i class="fas fa-bolt"></i>
+              </button>
+              <button class="strike-critical" data-strike-idx="{{@index}}" title="Critical Damage">
+                <i class="fas fa-skull-crossbones"></i>
+              </button>
+            </div>
+          </div>
+          {{#if this.hasAmmo}}
+          <div class="strike-ammo-row">
+            <i class="fas fa-crosshairs"></i>
+            <select class="ammo-select" data-strike-idx="{{@index}}">
+              <option value="">— No Ammo —</option>
+              {{#each this.compatibleAmmo}}
+              <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}} ({{this.quantity}})</option>
+              {{/each}}
+            </select>
+          </div>
+          {{/if}}
+          {{/each}}
+        </div>
+        {{/if}}
+
+        <!-- Actions / Reactions / Free -->
+        {{#each actions}}
+        {{#if this.items.length}}
+        <div class="actions-category">
+          <h3>{{this.label}}</h3>
+          <div class="feature-list">
+            {{#each this.items}}
+            <div class="item feature-entry" data-item-id="{{this.id}}">
+              <img class="feature-img" src="{{this.img}}" title="{{this.name}}">
+              <div class="feature-info">
+                <span class="feature-name">{{this.name}}</span>
+                {{#if this.traits}}<span class="feature-traits">{{this.traits}}</span>{{/if}}
+              </div>
+              <div class="feature-controls">
+                <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
+                <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
+                <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
+              </div>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+        {{/each}}
+      </div>
+
+      <!-- INVENTORY TAB -->
+      <div class="tab" data-tab="inventory">
+        <h2>Inventory</h2>
+
+        <div class="inv-filter-bar">
+          <button class="inv-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
+          <button class="inv-filter" data-filter="weapons"><i class="fas fa-sword"></i> Weapons</button>
+          <button class="inv-filter" data-filter="armor"><i class="fas fa-shield-alt"></i> Armor</button>
+          <button class="inv-filter" data-filter="equipment"><i class="fas fa-ring"></i> Equipment</button>
+          <button class="inv-filter" data-filter="consumables"><i class="fas fa-flask"></i> Consum.</button>
+          <button class="inv-filter" data-filter="treasure"><i class="fas fa-gem"></i> Treasure</button>
+          <button class="inv-filter" data-filter="containers"><i class="fas fa-box"></i> Containers</button>
+        </div>
+
+        <!-- Currency -->
+        <div class="currency-bar">
+          <div class="coin coin-pp">
+            <i class="fas fa-coins"></i>
+            <input type="number" class="coin-input" name="system.details.pp.value" value="{{currency.pp}}" min="0" placeholder="0">
+            <span class="coin-label">PP</span>
+          </div>
+          <div class="coin coin-gp">
+            <i class="fas fa-coins"></i>
+            <input type="number" class="coin-input" name="system.details.gp.value" value="{{currency.gp}}" min="0" placeholder="0">
+            <span class="coin-label">GP</span>
+          </div>
+          <div class="coin coin-sp">
+            <i class="fas fa-coins"></i>
+            <input type="number" class="coin-input" name="system.details.sp.value" value="{{currency.sp}}" min="0" placeholder="0">
+            <span class="coin-label">SP</span>
+          </div>
+          <div class="coin coin-cp">
+            <i class="fas fa-coins"></i>
+            <input type="number" class="coin-input" name="system.details.cp.value" value="{{currency.cp}}" min="0" placeholder="0">
+            <span class="coin-label">CP</span>
+          </div>
+        </div>
+
+        {{#each inventory}}
+        <div class="inventory-category" data-category="{{@key}}">
+          <h3 class="category-header">{{this.label}} <span class="item-create" data-type="{{this.type}}" title="Add {{this.label}}"><i class="fas fa-plus"></i></span></h3>
+          <div class="inv-grid">
+            {{#each this.items}}
+            <div class="inv-slot" data-item-id="{{this.id}}" draggable="true" title="{{this.name}}">
+              <img class="inv-slot-img" src="{{this.img}}">
+              {{#if this.quantity}}<span class="inv-slot-qty">{{this.quantity}}</span>{{/if}}
+              {{#if this.equipped}}<span class="inv-slot-equipped"><i class="fas fa-shield-alt"></i></span>{{/if}}
+              {{#if this.invested}}<span class="inv-slot-invested"><i class="fas fa-gem"></i></span>{{/if}}
+              <div class="inv-slot-hover">
+                <span class="inv-slot-name">{{this.name}}</span>
+                <div class="inv-slot-actions">
+                  <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
+                  {{#if this.isInvestable}}<span class="item-invest {{#if this.invested}}invested{{/if}}" title="Invest"><i class="fas fa-gem"></i></span>{{/if}}
+                  <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
+                  <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
+                </div>
+              </div>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+
+      <!-- SPELLS TAB -->
+      <div class="tab" data-tab="spells">
+        <h2>Spells</h2>
+
+        {{#each spellcasting}}
+        <div class="spellcasting-entry" data-item-id="{{this.id}}">
+          <h3 class="spell-entry-header">
+            {{this.name}}
+            <span class="spell-tradition">({{this.tradition}})</span>
+          </h3>
+          <div class="spell-info-bar">
+            <div class="spell-stat">
+              <span class="spell-stat-label">DC</span>
+              <span class="spell-stat-value">{{this.dc}}</span>
+            </div>
+            <div class="spell-stat">
+              <span class="spell-stat-label">Attack</span>
+              <span class="spell-stat-value">{{this.attackStr}}</span>
+            </div>
+            <div class="spell-stat">
+              <span class="spell-stat-label">Type</span>
+              <span class="spell-stat-value">{{this.type}}</span>
+            </div>
+          </div>
+
+          {{#if this.isPrepared}}
+          {{!-- PREPARED CASTER VIEW --}}
+          <div class="spell-prep-controls">
+            <button class="spell-prep-btn" data-entry-id="{{this.id}}" title="Open Spell Preparation">
+              <i class="fas fa-book-open"></i> Prepare Spells
+            </button>
+          </div>
+
+          <!-- Spell Filter Bar -->
+          <div class="spell-filter-bar">
+            <button class="spell-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
+            {{#each this.prepGrid}}
+            {{#if (eq this.rank 0)}}
+            <button class="spell-filter" data-filter="0"><i class="fas fa-hat-wizard"></i> Cantrips</button>
+            {{else}}
+            <button class="spell-filter" data-filter="{{this.rank}}"><i class="fas fa-star"></i> Rank {{this.rank}}</button>
+            {{/if}}
+            {{/each}}
+          </div>
+
+          <!-- Prepared Slots by Rank -->
+          {{#each this.prepGrid}}
+          <div class="spell-level-group" data-level="{{this.rank}}">
+            <h4 class="spell-level-header">{{this.label}}</h4>
+            <div class="prep-slot-list">
+              {{#each this.slots}}
+              <div class="prep-slot {{#if this.expended}}expended{{/if}} {{#if this.empty}}empty{{/if}}" 
+                   data-entry-id="{{../../id}}" data-slot-key="{{../key}}" data-slot-index="{{this.slotIndex}}"
+                   data-spell-id="{{this.spellId}}" draggable="{{#unless this.empty}}true{{else}}false{{/unless}}">
+                {{#if this.empty}}
+                <span class="prep-slot-empty"><i class="fas fa-plus"></i></span>
+                <span class="prep-slot-name empty-label">Empty Slot</span>
+                {{else}}
+                <img class="prep-slot-img" src="{{this.img}}">
+                <span class="prep-slot-name">{{this.name}}</span>
+                <div class="prep-slot-controls">
+                  {{#if this.expended}}<span class="prep-slot-x" title="Expended"><i class="fas fa-times-circle"></i></span>{{/if}}
+                  <span class="prep-slot-cast spell-use" data-item-id="{{this.spellId}}" data-entry-id="{{../../id}}" title="Cast"><i class="fas fa-dice-d20"></i></span>
+                </div>
+                {{/if}}
+              </div>
+              {{/each}}
+            </div>
+          </div>
+          {{/each}}
+
+          {{else}}
+          {{!-- SPONTANEOUS / INNATE / FOCUS CASTER VIEW --}}
+
+          <!-- Spell Slots -->
+          {{#if this.hasSlots}}
+          <div class="spell-slots-section">
+            <div class="spell-slots-grid">
+              {{#each this.slots}}
+              <div class="spell-slot-row">
+                <span class="slot-label">{{this.label}}</span>
+                <div class="slot-pips">
+                  {{#each this.pips}}
+                  <span class="slot-pip {{#if this.filled}}filled{{/if}}" data-entry-id="{{../../id}}" data-slot-key="{{../key}}" title="Click: use · Right-click: restore"><i class="fas fa-fire"></i></span>
+                  {{/each}}
+                </div>
+                <span class="slot-count">{{this.value}}/{{this.max}}</span>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+          {{/if}}
+
+          <!-- Spell Filter Bar -->
+          <div class="spell-filter-bar">
+            <button class="spell-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
+            {{#each this.availableRanks}}
+            {{#if (eq this "0")}}
+            <button class="spell-filter" data-filter="0"><i class="fas fa-hat-wizard"></i> Cantrips</button>
+            {{else if (eq this "focus")}}
+            <button class="spell-filter" data-filter="focus"><i class="fas fa-bullseye"></i> Focus</button>
+            {{else}}
+            <button class="spell-filter" data-filter="{{this}}"><i class="fas fa-star"></i> Rank {{this}}</button>
+            {{/if}}
+            {{/each}}
+          </div>
+
+          <!-- Spells by Rank -->
+          {{#each this.spellsByRank}}
+          <div class="spell-level-group" data-level="{{this.rank}}">
+            <h4 class="spell-level-header">{{this.label}}</h4>
+            <div class="spell-list">
+              {{#each this.spells}}
+              <div class="spell-entry" data-item-id="{{this.id}}" data-entry-id="{{../../id}}">
+                <img class="spell-img" src="{{this.img}}" title="{{this.name}}">
+                <div class="spell-details">
+                  <span class="spell-name spell-use" title="Click to cast">{{this.name}}</span>
+                  {{#if this.traits}}<span class="spell-school">{{this.traits}}</span>{{/if}}
+                </div>
+                <div class="spell-controls">
+                  <span class="spell-use" title="Cast"><i class="fas fa-dice-d20"></i></span>
+                  <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
+                  <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+          {{/each}}
+
+          {{/if}}
+        </div>
+        {{/each}}
+      </div>
+
+      <!-- FEATS TAB -->
+      <div class="tab" data-tab="feats">
+        <h2>Feats <span class="item-create" data-type="feat" title="Add Feat"><i class="fas fa-plus"></i></span></h2>
+
+        <div class="feat-filter-bar">
+          <button class="feat-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
+          <button class="feat-filter" data-filter="ancestry"><i class="fas fa-dna"></i> Ancestry</button>
+          <button class="feat-filter" data-filter="class"><i class="fas fa-chess-rook"></i> Class</button>
+          <button class="feat-filter" data-filter="skill"><i class="fas fa-running"></i> Skill</button>
+          <button class="feat-filter" data-filter="general"><i class="fas fa-star"></i> General</button>
+          <button class="feat-filter" data-filter="bonus"><i class="fas fa-plus-circle"></i> Bonus</button>
+        </div>
+
+        {{#each feats}}
+        <div class="feature-category" data-category="{{@key}}">
+          <h3>{{this.label}}</h3>
+          <div class="feature-list">
+            {{#each this.items}}
+            <div class="item feature-entry" data-item-id="{{this.id}}">
+              <img class="feature-img" src="{{this.img}}" title="{{this.name}}">
+              <div class="feature-info">
+                <span class="feature-name">{{this.name}}</span>
+                <span class="feature-level">Lvl {{this.level}}</span>
+                {{#if this.traits}}<span class="feature-traits">{{this.traits}}</span>{{/if}}
+              </div>
+              <div class="feature-controls">
+                <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
+                <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
+                <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
+              </div>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+
+      <!-- BIOGRAPHY TAB -->
+      <div class="tab" data-tab="biography">
+        <h2>Biography</h2>
+        <div class="bio-details">
+          <div class="bio-field">
+            <span>Gender:</span>
+            {{#if isEditable}}<input type="text" name="system.details.gender.value" value="{{bioDetails.gender}}" placeholder="Gender">
+            {{else}} {{bioDetails.gender}}{{/if}}
+          </div>
+          <div class="bio-field">
+            <span>Age:</span>
+            {{#if isEditable}}<input type="text" name="system.details.age.value" value="{{bioDetails.age}}" placeholder="Age">
+            {{else}} {{bioDetails.age}}{{/if}}
+          </div>
+          <div class="bio-field">
+            <span>Height:</span>
+            {{#if isEditable}}<input type="text" name="system.details.height.value" value="{{bioDetails.height}}" placeholder="Height">
+            {{else}} {{bioDetails.height}}{{/if}}
+          </div>
+          <div class="bio-field">
+            <span>Weight:</span>
+            {{#if isEditable}}<input type="text" name="system.details.weight.value" value="{{bioDetails.weight}}" placeholder="Weight">
+            {{else}} {{bioDetails.weight}}{{/if}}
+          </div>
+          <div class="bio-field">
+            <span>Ethnicity:</span>
+            {{#if isEditable}}<input type="text" name="system.details.ethnicity.value" value="{{bioDetails.ethnicity}}" placeholder="Ethnicity">
+            {{else}} {{bioDetails.ethnicity}}{{/if}}
+          </div>
+          <div class="bio-field">
+            <span>Nationality:</span>
+            {{#if isEditable}}<input type="text" name="system.details.nationality.value" value="{{bioDetails.nationality}}" placeholder="Nationality">
+            {{else}} {{bioDetails.nationality}}{{/if}}
+          </div>
+        </div>
+
+        <div class="bio-section">
+          <h3>Appearance</h3>
+          <div class="bio-rich">{{{biography.appearance}}}</div>
+        </div>
+        <div class="bio-section">
+          <h3>Backstory</h3>
+          <div class="bio-rich">{{{biography.backstory}}}</div>
+        </div>
+        <div class="bio-section">
+          <h3>Campaign Notes</h3>
+          <div class="bio-rich">{{{biography.campaignNotes}}}</div>
+        </div>
+        <div class="bio-section">
+          <h3>Allies</h3>
+          <div class="bio-rich">{{{biography.allies}}}</div>
+        </div>
+        <div class="bio-section">
+          <h3>Enemies</h3>
+          <div class="bio-rich">{{{biography.enemies}}}</div>
+        </div>
+        <div class="bio-section">
+          <h3>Organizations</h3>
+          <div class="bio-rich">{{{biography.organizations}}}</div>
+        </div>
+      </div>
+
+      <!-- EFFECTS TAB -->
+      <div class="tab" data-tab="effects">
+        <h2>Effects & Conditions</h2>
+
+        <div class="effects-list">
+          {{#each effects}}
+          <div class="effect-entry" data-item-id="{{this.id}}">
+            <img class="effect-img" src="{{this.img}}" title="{{this.name}}">
+            <div class="effect-info">
+              <span class="effect-name {{#if this.isExpired}}expired{{/if}}">{{this.name}}</span>
+              {{#if this.badge}}<span class="effect-badge">{{this.badge}}</span>{{/if}}
+              {{#if this.duration}}<span class="effect-duration">{{this.duration}}</span>{{/if}}
+            </div>
+            <div class="effect-controls">
+              <span class="effect-toggle" title="Toggle"><i class="fas fa-power-off"></i></span>
+              <span class="effect-delete" title="Remove"><i class="fas fa-trash"></i></span>
+            </div>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

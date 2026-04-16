@@ -1,0 +1,46 @@
+{
+  "id": "pf2e-aaa-sheet",
+  "title": "AAA PF2e Character Sheet",
+  "description": "Custom RPG-style character sheet for Pathfinder 2e with animated UI, parallax effects, and game-like aesthetics.",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "12",
+    "verified": "13",
+    "maximum": "14"
+  },
+  "authors": [
+    {
+      "name": "AAA Studio"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "pf2e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5.0.0",
+          "verified": "6.5.0"
+        }
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/aaa-sheet.mjs"
+  ],
+  "styles": [
+    "styles/aaa-sheet.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "es",
+      "name": "Español",
+      "path": "lang/es.json"
+    }
+  ]
+}
