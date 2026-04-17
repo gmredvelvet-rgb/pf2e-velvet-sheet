@@ -1,9 +1,9 @@
-/**
- * AAA PF2e Character Sheet — Foundry VTT Module
+﻿/**
+ * Velvet PF2e Sheet — Foundry VTT Module
  * Custom RPG-style ActorSheet for Pathfinder 2e characters
  */
 
-class AAACharacterSheet extends ActorSheet {
+class VelvetCharacterSheet extends ActorSheet {
 
   /** Cached reference to PF2e's internal AttributeBuilder class */
   static _AttributeBuilderClass = null;
@@ -11,14 +11,14 @@ class AAACharacterSheet extends ActorSheet {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["pf2e", "sheet", "actor", "aaa-sheet"],
-      template: "modules/pf2e-aaa-sheet/templates/aaa-character-sheet.hbs",
+      classes: ["pf2e", "sheet", "actor", "velvet-sheet"],
+      template: "modules/pf2e-velvet-sheet/templates/velvet-character-sheet.hbs",
       width: 900,
       height: 720,
       resizable: true,
       tabs: [],
       dragDrop: [{ dragSelector: "[data-item-id]", dropSelector: null }],
-      scrollY: [".aaa-panel .tab"]
+      scrollY: [".velvet-panel .tab"]
     });
   }
 
@@ -193,8 +193,8 @@ class AAACharacterSheet extends ActorSheet {
     };
 
     // Custom background image flag
-    context.bgImage = actor.getFlag("pf2e-aaa-sheet", "bgImage") ?? "";
-    context.bgOpacity = actor.getFlag("pf2e-aaa-sheet", "bgOpacity") ?? 80;
+    context.bgImage = actor.getFlag("pf2e-velvet-sheet", "bgImage") ?? "";
+    context.bgOpacity = actor.getFlag("pf2e-velvet-sheet", "bgOpacity") ?? 80;
 
     // Biography
     const bio = system.details?.biography ?? {};
@@ -356,7 +356,8 @@ class AAACharacterSheet extends ActorSheet {
         identified: item.system.identification?.status !== "unidentified",
         rarity: item.system.traits?.rarity ?? "common",
         uses: item.system.uses ?? null,
-        price: item.system.price?.value?.gp ?? 0
+        price: item.system.price?.value?.gp ?? 0,
+        hasSound: !!(item.getFlag("pf2e-velvet-sheet", "soundTrack"))
       };
 
       switch (item.type) {
@@ -390,7 +391,8 @@ class AAACharacterSheet extends ActorSheet {
           rank: spell.rank ?? spell.system.level?.value ?? 0,
           traits: (spell.system.traits?.value ?? []).join(", "),
           isFocus: spell.system.category?.value === "focus",
-          isCantrip: spell.isCantrip ?? spell.system.level?.value === 0
+          isCantrip: spell.isCantrip ?? spell.system.level?.value === 0,
+          hasSound: !!(spell.getFlag("pf2e-velvet-sheet", "soundTrack"))
         });
       }
       spells.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
@@ -442,10 +444,12 @@ class AAACharacterSheet extends ActorSheet {
             prepSlots.push({
               slotIndex: s,
               spellId: p?.id ?? null,
-              expended: p?.expended ?? false,
+              expended: i === 0 ? false : (p?.expended ?? false),
+              isCantrip: i === 0,
               name: spellItem?.name ?? null,
               img: spellItem?.img ?? null,
-              empty: !p?.id
+              empty: !p?.id,
+              hasSound: !!(spellItem?.getFlag?.("pf2e-velvet-sheet", "soundTrack") || spellItem?.getFlag?.("pf2e-velvet-sheet", "sounds"))
             });
           }
           prepGrid.push({
@@ -510,7 +514,8 @@ class AAACharacterSheet extends ActorSheet {
         actionCost: item.system.actionType?.value ?? item.actionCost?.type ?? "",
         description: item.system.description?.value ?? "",
         uses: item.system.frequency ?? null,
-        category: item.system.category ?? "bonus"
+        category: item.system.category ?? "bonus",
+        hasSound: !!(item.getFlag("pf2e-velvet-sheet", "soundTrack"))
       };
 
       switch (ctx.category) {
@@ -545,7 +550,8 @@ class AAACharacterSheet extends ActorSheet {
         actionCost: item.actionCost?.type ?? item.system.actionType?.value ?? "",
         actions: item.actionCost?.value ?? item.system.actions?.value ?? null,
         traits: (item.system.traits?.value ?? []).join(", "),
-        description: item.system.description?.value ?? ""
+        description: item.system.description?.value ?? "",
+        hasSound: !!(item.getFlag("pf2e-velvet-sheet", "soundTrack"))
       };
 
       if (ctx.actionType === "reaction" || ctx.actionCost === "reaction") {
@@ -679,7 +685,13 @@ class AAACharacterSheet extends ActorSheet {
         hasAmmo: compatibleAmmo.length > 0,
         selectedAmmoId,
         compatibleAmmo,
-        weaponId: s.item?.id ?? null
+        weaponId: s.item?.id ?? null,
+        hasSound: (() => {
+          if (!s.item?.getFlag) return false;
+          const sounds = s.item.getFlag("pf2e-velvet-sheet", "sounds");
+          if (sounds) return Object.values(sounds).some(c => c?.playlist && c?.track);
+          return !!(s.item.getFlag("pf2e-velvet-sheet", "soundTrack"));
+        })()
       };
     });
   }
@@ -705,7 +717,7 @@ class AAACharacterSheet extends ActorSheet {
       ranged:   { label: "Ranged",    img: "icons/weapons/bows/shortbow-recurve-bone.webp",             filter: ["weapon"] },
       ammo:     { label: "Ammo",      img: "icons/weapons/ammunition/arrow-broadhead-pointed-orange.webp", filter: ["consumable", "treasure"] },
     };
-    const equipped = actor.getFlag("pf2e-aaa-sheet", "paperDollSlots") ?? {};
+    const equipped = actor.getFlag("pf2e-velvet-sheet", "paperDollSlots") ?? {};
     const slots = {};
     for (const [key, def] of Object.entries(SLOT_DEFS)) {
       const itemId = equipped[key];
@@ -754,8 +766,8 @@ class AAACharacterSheet extends ActorSheet {
       if (!tab) return;
       html.find(".nav-item").removeClass("active");
       $(ev.currentTarget).addClass("active");
-      html.find(".aaa-panel > .tab").removeClass("active");
-      html.find(`.aaa-panel > .tab[data-tab="${tab}"]`).addClass("active");
+      html.find(".velvet-panel > .tab").removeClass("active");
+      html.find(`.velvet-panel > .tab[data-tab="${tab}"]`).addClass("active");
       this._activeTab = tab;
     });
 
@@ -763,8 +775,8 @@ class AAACharacterSheet extends ActorSheet {
     if (this._activeTab) {
       html.find(".nav-item").removeClass("active");
       html.find(`.nav-item[data-tab="${this._activeTab}"]`).addClass("active");
-      html.find(".aaa-panel > .tab").removeClass("active");
-      html.find(`.aaa-panel > .tab[data-tab="${this._activeTab}"]`).addClass("active");
+      html.find(".velvet-panel > .tab").removeClass("active");
+      html.find(`.velvet-panel > .tab[data-tab="${this._activeTab}"]`).addClass("active");
     }
 
     // Inventory category filter
@@ -827,28 +839,28 @@ class AAACharacterSheet extends ActorSheet {
     }
 
     // Panel opacity
-    const panelOpacity = (this.actor.getFlag("pf2e-aaa-sheet", "bgOpacity") ?? 80) / 100;
+    const panelOpacity = (this.actor.getFlag("pf2e-velvet-sheet", "bgOpacity") ?? 80) / 100;
     const sheet = html.find(".dnd-sheet")[0];
-    if (sheet) sheet.style.setProperty("--aaa-panel-opacity", panelOpacity);
+    if (sheet) sheet.style.setProperty("--velvet-panel-opacity", panelOpacity);
 
     // Everything below only for owners
     if (!this.isEditable) return;
 
     // Background settings dialog
     html.find(".bg-picker").click(ev => {
-      const currentBg = this.actor.getFlag("pf2e-aaa-sheet", "bgImage") ?? "";
-      const currentOp = this.actor.getFlag("pf2e-aaa-sheet", "bgOpacity") ?? 80;
+      const currentBg = this.actor.getFlag("pf2e-velvet-sheet", "bgImage") ?? "";
+      const currentOp = this.actor.getFlag("pf2e-velvet-sheet", "bgOpacity") ?? 80;
       const dlgContent = `
-        <form class="aaa-bg-settings">
+        <form class="velvet-bg-settings">
           <div style="margin-bottom:10px;">
             <label style="display:block;margin-bottom:4px;font-weight:600;color:#c8a84e;">Background Image / Video</label>
             <div style="display:flex;gap:6px;align-items:center;">
               <input type="text" name="bgPath" value="${currentBg}" style="flex:1;background:#1a1a1a;border:1px solid #444;color:#ccc;padding:4px 6px;" placeholder="Path to image or video...">
-              <button type="button" class="aaa-bg-browse" style="padding:4px 10px;cursor:pointer;"><i class="fas fa-folder-open"></i></button>
+              <button type="button" class="velvet-bg-browse" style="padding:4px 10px;cursor:pointer;"><i class="fas fa-folder-open"></i></button>
             </div>
           </div>
           <div>
-            <label style="display:block;margin-bottom:4px;font-weight:600;color:#c8a84e;">Panel Darkness: <span class="aaa-op-val">${currentOp}%</span></label>
+            <label style="display:block;margin-bottom:4px;font-weight:600;color:#c8a84e;">Panel Darkness: <span class="velvet-op-val">${currentOp}%</span></label>
             <input type="range" name="bgOpacity" min="10" max="100" step="5" value="${currentOp}" style="width:100%;">
             <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;"><span>Transparent</span><span>Opaque</span></div>
           </div>
@@ -865,19 +877,19 @@ class AAACharacterSheet extends ActorSheet {
               const form = html.find("form")[0];
               const path = form.bgPath.value.trim();
               const opacity = parseInt(form.bgOpacity.value);
-              this.actor.setFlag("pf2e-aaa-sheet", "bgImage", path);
-              this.actor.setFlag("pf2e-aaa-sheet", "bgOpacity", opacity);
+              this.actor.setFlag("pf2e-velvet-sheet", "bgImage", path);
+              this.actor.setFlag("pf2e-velvet-sheet", "bgOpacity", opacity);
             }
           },
           clear: {
             icon: '<i class="fas fa-trash"></i>',
             label: "Clear BG",
-            callback: () => this.actor.setFlag("pf2e-aaa-sheet", "bgImage", "")
+            callback: () => this.actor.setFlag("pf2e-velvet-sheet", "bgImage", "")
           }
         },
         default: "save",
         render: dlgHtml => {
-          dlgHtml.find(".aaa-bg-browse").click(() => {
+          dlgHtml.find(".velvet-bg-browse").click(() => {
             const fp = new FilePicker({
               type: "imagevideo",
               current: dlgHtml.find("[name=bgPath]").val(),
@@ -887,9 +899,9 @@ class AAACharacterSheet extends ActorSheet {
           });
           dlgHtml.find("[name=bgOpacity]").on("input", e => {
             const val = e.target.value;
-            dlgHtml.find(".aaa-op-val").text(val + "%");
+            dlgHtml.find(".velvet-op-val").text(val + "%");
             const s = this.element.find(".dnd-sheet")[0];
-            if (s) s.style.setProperty("--aaa-panel-opacity", val / 100);
+            if (s) s.style.setProperty("--velvet-panel-opacity", val / 100);
           });
         }
       });
@@ -996,6 +1008,18 @@ class AAACharacterSheet extends ActorSheet {
       }
     });
 
+    // Item sound config — open VelvetSoundConfig form
+    html.find(".item-sound-config").click(ev => {
+      ev.stopPropagation();
+      const el = ev.currentTarget;
+      const itemId = el.closest("[data-item-id]")?.dataset.itemId
+                  ?? el.dataset.itemId;
+      const item = this.actor.items.get(itemId);
+      if (!item) return;
+      const isStrike = !!el.closest(".strike-entry");
+      new VelvetSoundConfig(item, { isStrike }).render(true);
+    });
+
     // Spell use — cast via PF2e spellcasting entry
     html.find(".spell-use").click(async (ev) => {
       ev.stopPropagation();
@@ -1096,10 +1120,12 @@ class AAACharacterSheet extends ActorSheet {
       }
     });
 
-    // Prep slot click - toggle expended/unexpended
+    // Prep slot click - toggle expended/unexpended (not cantrips)
     html.find(".prep-slot:not(.empty)").click(ev => {
       // Don't toggle if clicking on a control button
       if (ev.target.closest(".prep-slot-controls")) return;
+      // Cantrips are at-will — never mark as expended
+      if (ev.currentTarget.dataset.slotKey === "slot0") return;
       const entryId = ev.currentTarget.dataset.entryId;
       const slotKey = ev.currentTarget.dataset.slotKey;
       const slotIndex = Number.parseInt(ev.currentTarget.dataset.slotIndex);
@@ -1271,8 +1297,8 @@ class AAACharacterSheet extends ActorSheet {
       }
 
       // 2. If we previously cached the class, use it directly
-      if (AAACharacterSheet._AttributeBuilderClass) {
-        new AAACharacterSheet._AttributeBuilderClass(this.actor).render(true);
+      if (VelvetCharacterSheet._AttributeBuilderClass) {
+        new VelvetCharacterSheet._AttributeBuilderClass(this.actor).render(true);
         return;
       }
 
@@ -1293,7 +1319,7 @@ class AAACharacterSheet extends ActorSheet {
           // Cache the AttributeBuilder class for instant future use
           setTimeout(() => {
             const builder = Object.values(this.actor.apps).find(a => a.constructor.name === "AttributeBuilder");
-            if (builder) AAACharacterSheet._AttributeBuilderClass = builder.constructor;
+            if (builder) VelvetCharacterSheet._AttributeBuilderClass = builder.constructor;
             tempSheet.close({ force: true });
           }, 150);
         } else {
@@ -1408,11 +1434,82 @@ class AAACharacterSheet extends ActorSheet {
       if (restType === "long") game.pf2e?.actions?.restForTheNight?.({ actors: this.actor });
     });
 
-    // Initiative roll
+    // Initiative roll — with skill selection like the original PF2e sheet
     html.find(".initiative-roll").click(ev => {
+      ev.preventDefault();
       const nativeEvent = ev.originalEvent ?? ev;
-      this.actor.initiative?.roll?.({ event: nativeEvent })
-        ?? this.actor.rollInitiative?.({ event: nativeEvent });
+
+      // Build a list of available initiative statistics
+      const options = [];
+
+      // Perception (default)
+      const perception = this.actor.perception;
+      if (perception) {
+        const mod = perception.mod ?? perception.totalModifier ?? 0;
+        const modStr = (mod >= 0 ? "+" : "") + mod;
+        options.push({ slug: "perception", label: `Perception (${modStr})`, stat: perception });
+      }
+
+      // Skills that can be used for initiative (all skills, as PF2e allows any with feats)
+      const skills = this.actor.skills ?? {};
+      for (const [key, skill] of Object.entries(skills)) {
+        if (!skill) continue;
+        const mod = skill.mod ?? skill.totalModifier ?? 0;
+        const modStr = (mod >= 0 ? "+" : "") + mod;
+        const label = skill.label ?? CONFIG.PF2E?.skills?.[key]?.label ?? key;
+        const displayLabel = typeof label === "string" ? label : key;
+        options.push({ slug: key, label: `${displayLabel} (${modStr})`, stat: skill });
+      }
+
+      // If only perception available or fewer, just roll directly
+      if (options.length <= 1 && options[0]?.stat) {
+        if (this.actor.initiative?.roll) {
+          this.actor.initiative.roll({ event: nativeEvent, statistic: options[0].slug });
+        } else {
+          this.actor.rollInitiative?.({ event: nativeEvent });
+        }
+        return;
+      }
+
+      // Build the skill selection dialog
+      const listHtml = options.map(o =>
+        `<div class="velvet-init-option" data-slug="${o.slug}" title="${o.label}">
+          <span class="velvet-init-label">${o.label}</span>
+        </div>`
+      ).join("");
+
+      const dlg = new Dialog({
+        title: "Roll Initiative",
+        content: `<div class="velvet-init-list" style="display:flex;flex-direction:column;gap:2px;max-height:400px;overflow-y:auto;">${listHtml}</div>`,
+        buttons: { cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel" } },
+        default: "cancel",
+        render: dlgHtml => {
+          // Style the options
+          dlgHtml.find(".velvet-init-option").css({
+            padding: "6px 10px",
+            cursor: "pointer",
+            borderBottom: "1px solid rgba(200,168,78,0.12)",
+            transition: "background 0.15s ease",
+            fontFamily: "'Cinzel', serif",
+            fontSize: "13px",
+            letterSpacing: "0.3px"
+          }).hover(
+            function() { $(this).css({ background: "rgba(200,168,78,0.1)" }); },
+            function() { $(this).css({ background: "transparent" }); }
+          ).click(ev => {
+            const slug = ev.currentTarget.dataset.slug;
+            dlg.close();
+            // Use PF2e's initiative.roll with the selected statistic
+            if (this.actor.initiative?.roll) {
+              this.actor.initiative.roll({ event: nativeEvent, statistic: slug });
+            } else {
+              // Fallback
+              this.actor.rollInitiative?.({ event: nativeEvent });
+            }
+          });
+        }
+      });
+      dlg.render(true);
     });
 
     // Portrait click to change
@@ -1459,10 +1556,10 @@ class AAACharacterSheet extends ActorSheet {
       const slotKey = ev.currentTarget.dataset.slot;
       const itemId = ev.currentTarget.dataset.itemId;
       if (itemId) {
-        const slots = foundry.utils.deepClone(this.actor.getFlag("pf2e-aaa-sheet", "paperDollSlots") ?? {});
+        const slots = foundry.utils.deepClone(this.actor.getFlag("pf2e-velvet-sheet", "paperDollSlots") ?? {});
         delete slots[slotKey];
-        await this.actor.unsetFlag("pf2e-aaa-sheet", "paperDollSlots");
-        await this.actor.setFlag("pf2e-aaa-sheet", "paperDollSlots", slots);
+        await this.actor.unsetFlag("pf2e-velvet-sheet", "paperDollSlots");
+        await this.actor.setFlag("pf2e-velvet-sheet", "paperDollSlots", slots);
       }
     });
 
@@ -1480,9 +1577,9 @@ class AAACharacterSheet extends ActorSheet {
           const item = this.actor.items.get(data.uuid?.split(".").pop()) || await Item.implementation.fromDropData(data);
           if (!item || item.parent !== this.actor) return;
           const slotKey = el.dataset.slot;
-          const slots = this.actor.getFlag("pf2e-aaa-sheet", "paperDollSlots") ?? {};
+          const slots = this.actor.getFlag("pf2e-velvet-sheet", "paperDollSlots") ?? {};
           slots[slotKey] = item.id;
-          await this.actor.setFlag("pf2e-aaa-sheet", "paperDollSlots", slots);
+          await this.actor.setFlag("pf2e-velvet-sheet", "paperDollSlots", slots);
         } catch (e) { /* ignore bad data */ }
       });
     });
@@ -1491,7 +1588,7 @@ class AAACharacterSheet extends ActorSheet {
     html.find(".pd-unequip-all").click(async ev => {
       ev.stopPropagation();
       if (!this.isEditable) return;
-      await this.actor.unsetFlag("pf2e-aaa-sheet", "paperDollSlots");
+      await this.actor.unsetFlag("pf2e-velvet-sheet", "paperDollSlots");
     });
   }
 
@@ -1514,9 +1611,9 @@ class AAACharacterSheet extends ActorSheet {
       render: dlgHtml => {
         dlgHtml.find(".pd-pick-item").click(async ev => {
           const id = ev.currentTarget.dataset.id;
-          const slots = this.actor.getFlag("pf2e-aaa-sheet", "paperDollSlots") ?? {};
+          const slots = this.actor.getFlag("pf2e-velvet-sheet", "paperDollSlots") ?? {};
           slots[slotKey] = id;
-          await this.actor.setFlag("pf2e-aaa-sheet", "paperDollSlots", slots);
+          await this.actor.setFlag("pf2e-velvet-sheet", "paperDollSlots", slots);
           dlg.close();
         });
       }
@@ -1526,14 +1623,262 @@ class AAACharacterSheet extends ActorSheet {
 }
 
 /* ============================================= */
+/*  Sound System — Item Sound Configuration      */
+/* ============================================= */
+
+const VELVET_MODULE_ID = "pf2e-velvet-sheet";
+
+function _velvetIsFirstGM() {
+  return game.user === game.users.find(u => u.isGM && u.active);
+}
+
+async function _velvetPlayItemSound(playlistId, trackId, volume = 0.8) {
+  const playlist = game.playlists.get(playlistId);
+  if (!playlist) return;
+
+  if (trackId === "random-track") {
+    const ids = playlist.sounds.map(s => s.id);
+    if (!ids.length) return;
+    trackId = ids[Math.floor(Math.random() * ids.length)];
+  }
+
+  const sound = playlist.sounds.get(trackId);
+  if (!sound) return;
+
+  // Store original volume, play, then restore (volume is per-sound in Foundry)
+  const origVolume = sound.volume;
+  if (Math.abs(origVolume - volume) > 0.01) {
+    await sound.update({ volume });
+  }
+  await playlist.playSound(sound);
+  // Restore original volume after a short delay so it doesn't affect the playlist permanently
+  if (Math.abs(origVolume - volume) > 0.01) {
+    setTimeout(() => sound.update({ volume: origVolume }), 500);
+  }
+}
+
+class VelvetSoundConfig extends FormApplication {
+  /**
+   * @param {Item} item
+   * @param {object} options
+   * @param {boolean} options.isStrike — true to show per-roll-type tabs
+   */
+  constructor(item, options = {}) {
+    super(item, options);
+    this.item = item;
+    this.isStrike = options.isStrike ?? false;
+    this._activeTab = "attack1";
+    // For strike mode, load per-tab playlists; for simple mode, load single playlist
+    if (this.isStrike) {
+      const sounds = item.getFlag(VELVET_MODULE_ID, "sounds") ?? {};
+      this._tabPlaylists = {};
+      for (const key of VelvetSoundConfig.ROLL_TYPES) {
+        this._tabPlaylists[key] = sounds[key]?.playlist ?? "";
+      }
+    } else {
+      this._selectedPlaylist = item.getFlag(VELVET_MODULE_ID, "soundPlaylist") ?? "";
+    }
+  }
+
+  static ROLL_TYPES = ["attack1", "attack2", "attack3", "damage", "critical"];
+
+  static ROLL_LABELS = {
+    attack1:  "1st Attack",
+    attack2:  "2nd Attack (MAP -5)",
+    attack3:  "3rd Attack (MAP -10)",
+    damage:   "Damage",
+    critical: "Critical"
+  };
+
+  static ROLL_ICONS = {
+    attack1:  "fas fa-dice-d20",
+    attack2:  "fas fa-dice-d20",
+    attack3:  "fas fa-dice-d20",
+    damage:   "fas fa-bolt",
+    critical: "fas fa-skull-crossbones"
+  };
+
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "velvet-sound-config",
+      title: "Item Sound Configuration",
+      template: `modules/${VELVET_MODULE_ID}/templates/velvet-sound-config.hbs`,
+      classes: ["velvet-sound-config"],
+      width: 420,
+      height: "auto"
+    });
+  }
+
+  async getData() {
+    const allPlaylists = game.playlists.contents;
+
+    if (this.isStrike) {
+      const sounds = this.item.getFlag(VELVET_MODULE_ID, "sounds") ?? {};
+      const tabs = VelvetSoundConfig.ROLL_TYPES.map(key => {
+        const cfg = sounds[key] ?? {};
+        const playlistId = this._tabPlaylists[key] ?? cfg.playlist ?? "";
+        const trackId = cfg.track ?? "";
+        const volume = cfg.volume ?? 0.8;
+        const playlist = playlistId ? game.playlists.get(playlistId) : null;
+        return {
+          key,
+          label: VelvetSoundConfig.ROLL_LABELS[key],
+          icon: VelvetSoundConfig.ROLL_ICONS[key],
+          active: key === this._activeTab,
+          playlistId,
+          trackId,
+          volume,
+          volumePct: Math.round(volume * 100),
+          tracks: playlist ? playlist.sounds.contents : [],
+          hasSound: !!(playlistId && trackId)
+        };
+      });
+      return { isStrike: true, tabs, playlists: allPlaylists, activeTab: this._activeTab };
+    }
+
+    // Simple mode (non-strike items)
+    const playlistId = this._selectedPlaylist;
+    const trackId = this.item.getFlag(VELVET_MODULE_ID, "soundTrack") ?? "";
+    const volume = this.item.getFlag(VELVET_MODULE_ID, "soundVolume") ?? 0.8;
+    const playlist = playlistId ? game.playlists.get(playlistId) : null;
+    return {
+      isStrike: false,
+      playlists: allPlaylists,
+      currentPlaylist: playlistId,
+      currentTrack: trackId,
+      tracks: playlist ? playlist.sounds.contents : [],
+      volume,
+      volumePct: Math.round(volume * 100)
+    };
+  }
+
+  async _updateObject(event, formData) {
+    if (this.isStrike) {
+      // Save all tabs' data from hidden inputs
+      const sounds = this.item.getFlag(VELVET_MODULE_ID, "sounds") ?? {};
+      for (const key of VelvetSoundConfig.ROLL_TYPES) {
+        sounds[key] = {
+          playlist: formData[`${key}.playlist`] || "",
+          track: formData[`${key}.track`] || "",
+          volume: parseFloat(formData[`${key}.volume`]) || 0.8
+        };
+      }
+      await this.item.setFlag(VELVET_MODULE_ID, "sounds", sounds);
+      ui.notifications.info(`Strike sounds saved for ${this.item.name}`);
+    } else {
+      await this.item.update({
+        [`flags.${VELVET_MODULE_ID}.soundPlaylist`]: formData.playlist || "",
+        [`flags.${VELVET_MODULE_ID}.soundTrack`]: formData.track || "",
+        [`flags.${VELVET_MODULE_ID}.soundVolume`]: parseFloat(formData.volume) || 0.8
+      });
+      ui.notifications.info(`Sound saved for ${this.item.name}`);
+    }
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+
+    if (this.isStrike) {
+      // Tab switching
+      html.find(".velvet-sound-tab").on("click", ev => {
+        this._activeTab = ev.currentTarget.dataset.tab;
+        this.render();
+      });
+
+      // Playlist change per tab
+      html.find("select[data-field='playlist']").on("change", ev => {
+        const tab = ev.currentTarget.closest("[data-tab-panel]").dataset.tabPanel;
+        this._tabPlaylists[tab] = ev.target.value;
+        this.render();
+      });
+
+      // Volume slider label per tab
+      html.find("input[data-field='volume']").on("input", ev => {
+        const panel = ev.currentTarget.closest("[data-tab-panel]");
+        panel.querySelector(".velvet-vol-val").textContent = Math.round(ev.target.value * 100) + "%";
+      });
+
+      // Preview per tab
+      html.find(".velvet-sound-preview").on("click", ev => {
+        const panel = ev.currentTarget.closest("[data-tab-panel]");
+        const playlistId = panel.querySelector("[data-field='playlist']").value;
+        const trackId = panel.querySelector("[data-field='track']").value;
+        const volume = parseFloat(panel.querySelector("[data-field='volume']").value) || 0.8;
+        if (playlistId && trackId) {
+          _velvetPlayItemSound(playlistId, trackId, volume);
+        } else {
+          ui.notifications.warn("Select a playlist and track first.");
+        }
+      });
+
+      // Clear per tab
+      html.find(".velvet-sound-tab-clear").on("click", async ev => {
+        const tab = ev.currentTarget.dataset.clearTab;
+        this._tabPlaylists[tab] = "";
+        const sounds = this.item.getFlag(VELVET_MODULE_ID, "sounds") ?? {};
+        sounds[tab] = { playlist: "", track: "", volume: 0.8 };
+        await this.item.setFlag(VELVET_MODULE_ID, "sounds", sounds);
+        ui.notifications.info(`${VelvetSoundConfig.ROLL_LABELS[tab]} sound cleared.`);
+        this.render();
+      });
+
+      // Clear ALL
+      html.find(".velvet-sound-clear-all").on("click", async () => {
+        const empty = {};
+        for (const key of VelvetSoundConfig.ROLL_TYPES) {
+          empty[key] = { playlist: "", track: "", volume: 0.8 };
+          this._tabPlaylists[key] = "";
+        }
+        await this.item.setFlag(VELVET_MODULE_ID, "sounds", empty);
+        ui.notifications.info(`All strike sounds cleared for ${this.item.name}`);
+        this.render();
+      });
+
+    } else {
+      // Simple mode listeners (non-strike items)
+      html.find("select[name='playlist']").on("change", ev => {
+        this._selectedPlaylist = ev.target.value;
+        this.render();
+      });
+
+      html.find("input[name='volume']").on("input", ev => {
+        html.find(".velvet-vol-val").text(Math.round(ev.target.value * 100) + "%");
+      });
+
+      html.find(".velvet-sound-preview").on("click", () => {
+        const playlistId = html.find("[name='playlist']").val();
+        const trackId = html.find("[name='track']").val();
+        const volume = parseFloat(html.find("[name='volume']").val()) || 0.8;
+        if (playlistId && trackId) {
+          _velvetPlayItemSound(playlistId, trackId, volume);
+        } else {
+          ui.notifications.warn("Select a playlist and track first.");
+        }
+      });
+
+      html.find(".velvet-sound-clear").on("click", async () => {
+        await this.item.update({
+          [`flags.${VELVET_MODULE_ID}.soundPlaylist`]: "",
+          [`flags.${VELVET_MODULE_ID}.soundTrack`]: "",
+          [`flags.${VELVET_MODULE_ID}.soundVolume`]: 0.8
+        });
+        ui.notifications.info(`Sound cleared for ${this.item.name}`);
+        this._selectedPlaylist = "";
+        this.render();
+      });
+    }
+  }
+}
+
+/* ============================================= */
 /*  Module Registration                          */
 /* ============================================= */
 
 Hooks.once("init", () => {
-  Actors.registerSheet("pf2e", AAACharacterSheet, {
+  Actors.registerSheet("pf2e", VelvetCharacterSheet, {
     types: ["character"],
     makeDefault: false,
-    label: "AAA PF2e Character Sheet"
+    label: "Velvet PF2e Sheet"
   });
 
   // Register Handlebars helpers
@@ -1541,10 +1886,213 @@ Hooks.once("init", () => {
 
   // Cache PF2e's AttributeBuilder class when it's first rendered from any sheet
   Hooks.on("renderApplication", (app) => {
-    if (app.constructor.name === "AttributeBuilder" && !AAACharacterSheet._AttributeBuilderClass) {
-      AAACharacterSheet._AttributeBuilderClass = app.constructor;
+    if (app.constructor.name === "AttributeBuilder" && !VelvetCharacterSheet._AttributeBuilderClass) {
+      VelvetCharacterSheet._AttributeBuilderClass = app.constructor;
     }
   });
 
-  console.log("AAA PF2e Character Sheet | Registered");
+  console.log("Velvet PF2e Sheet | Registered");
+});
+
+/* ============================================= */
+/*  Sound Playback on Item Use (Chat Hook)       */
+/* ============================================= */
+
+/**
+ * Determine the roll-type key from a PF2e ChatMessage for per-roll-type sound.
+ * Returns: "attack1" | "attack2" | "attack3" | "damage" | "critical" | null
+ */
+function _velvetDetectRollType(message) {
+  const ctx = message.flags?.pf2e?.context;
+  if (!ctx) return null;
+
+  const type = ctx.type;         // "attack-roll", "damage-roll", "spell-attack-roll"...
+
+  // Damage rolls
+  if (type === "damage-roll") {
+    // Check if the outcome on the originating attack was a critical
+    const outcomeType = ctx.outcome ?? message.flags?.pf2e?.context?.outcome;
+    if (outcomeType === "criticalSuccess") return "critical";
+    // Also check if the roll itself is flagged as critical damage
+    if (message.flags?.pf2e?.origin?.rollOptions?.some?.(o => o === "check:outcome:critical-success")) return "critical";
+    return "damage";
+  }
+
+  // Attack rolls (including spell attack rolls)
+  if (type === "attack-roll" || type === "spell-attack-roll") {
+    const mapIncreases = ctx.mapIncreases ?? ctx["map-increases"] ?? 0;
+    if (mapIncreases === 0) return "attack1";
+    if (mapIncreases === 1) return "attack2";
+    if (mapIncreases >= 2) return "attack3";
+    return "attack1";
+  }
+
+  return null;
+}
+
+/**
+ * Resolve the sound config {playlist, track, volume} for an item + message.
+ * Checks per-roll-type sounds first (strikes), then falls back to legacy single sound.
+ */
+function _velvetResolveSoundConfig(item, message) {
+  // 1) Try per-roll-type sounds (strikes)
+  const sounds = item.getFlag(VELVET_MODULE_ID, "sounds");
+  if (sounds) {
+    const rollType = _velvetDetectRollType(message);
+    if (rollType && sounds[rollType]) {
+      const cfg = sounds[rollType];
+      if (cfg.playlist && cfg.track) {
+        console.log("Velvet Sound | Roll type:", rollType);
+        return { playlist: cfg.playlist, track: cfg.track, volume: cfg.volume ?? 0.8 };
+      }
+    }
+    // If we have a sounds object but no match for this specific roll type,
+    // fall back to attack1 as default for any attack, or damage as default
+    if (rollType) {
+      const fallbackKey = rollType.startsWith("attack") ? "attack1" : "damage";
+      const fb = sounds[fallbackKey];
+      if (fb?.playlist && fb?.track) {
+        console.log("Velvet Sound | Roll type fallback:", rollType, "→", fallbackKey);
+        return { playlist: fb.playlist, track: fb.track, volume: fb.volume ?? 0.8 };
+      }
+    }
+  }
+
+  // 2) Legacy single sound (non-strikes, or strikes without per-roll config)
+  const playlistId = item.getFlag(VELVET_MODULE_ID, "soundPlaylist");
+  const trackId = item.getFlag(VELVET_MODULE_ID, "soundTrack");
+  if (playlistId && trackId) {
+    return {
+      playlist: playlistId,
+      track: trackId,
+      volume: item.getFlag(VELVET_MODULE_ID, "soundVolume") ?? 0.8
+    };
+  }
+
+  return null;
+}
+
+Hooks.on("renderChatMessage", async (message, html, data) => {
+  // Only the first active GM processes sound playback
+  if (!_velvetIsFirstGM()) return;
+
+  // Skip if already played
+  if (message.getFlag(VELVET_MODULE_ID, "soundPlayed")) return;
+
+  let item = null;
+
+  // --- Method 1: PF2e origin UUID (strikes, spells, actions) ---
+  const originUuid = message.flags?.pf2e?.origin?.uuid;
+  if (originUuid) {
+    try {
+      item = await fromUuid(originUuid);
+      console.log("Velvet Sound | Item via origin UUID:", item?.name, originUuid);
+    } catch (e) {
+      console.warn("Velvet Sound | Could not resolve origin UUID:", originUuid, e);
+    }
+  }
+
+  // --- Method 2: PF2e casting / item embedded in message ---
+  if (!item) {
+    const castingId = message.flags?.pf2e?.casting?.id;
+    if (castingId) {
+      try {
+        const speaker = message.speaker;
+        const actor = _velvetResolveActor(speaker);
+        if (actor) item = actor.items.get(castingId);
+        if (item) console.log("Velvet Sound | Item via casting id:", item?.name);
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  // --- Method 3: HTML [data-item-id] (item card / description posts) ---
+  if (!item) {
+    try {
+      const el = (html instanceof HTMLElement) ? html : (html[0] ?? html);
+      const itemEl = el?.querySelector?.("[data-item-id]");
+      if (itemEl) {
+        const itemId = itemEl.dataset.itemId;
+        const actor = _velvetResolveActor(message.speaker);
+        if (actor && itemId) {
+          item = actor.items.get(itemId);
+          if (item) console.log("Velvet Sound | Item via data-item-id:", item?.name);
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // --- Method 4: HTML [data-item-uuid] fallback ---
+  if (!item) {
+    try {
+      const el = (html instanceof HTMLElement) ? html : (html[0] ?? html);
+      const uuidEl = el?.querySelector?.("[data-item-uuid]");
+      if (uuidEl) {
+        item = await fromUuid(uuidEl.dataset.itemUuid);
+        if (item) console.log("Velvet Sound | Item via data-item-uuid:", item?.name);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  if (!item) return;
+
+  // Resolve the correct sound config (per-roll-type or legacy)
+  const soundCfg = _velvetResolveSoundConfig(item, message);
+  if (!soundCfg) return;
+
+  console.log("Velvet Sound | Playing:", item.name, "| Playlist:", soundCfg.playlist, "| Track:", soundCfg.track, "| Vol:", soundCfg.volume);
+
+  // Play the sound (synced to all clients via Foundry Playlist API)
+  await _velvetPlayItemSound(soundCfg.playlist, soundCfg.track, soundCfg.volume);
+
+  // Mark as played to prevent duplicate playback
+  await message.setFlag(VELVET_MODULE_ID, "soundPlayed", true);
+});
+
+/** Resolve an actor from a ChatMessage speaker object */
+function _velvetResolveActor(speaker) {
+  if (!speaker) return null;
+  if (speaker.scene && speaker.token) {
+    const scene = game.scenes.get(speaker.scene);
+    const token = scene?.tokens?.get(speaker.token);
+    if (token?.actor) return token.actor;
+  }
+  if (speaker.actor) return game.actors.get(speaker.actor);
+  return null;
+}
+
+/* ============================================= */
+/*  Backup: createChatMessage hook               */
+/*  Fires once when message is created (no HTML) */
+/* ============================================= */
+
+Hooks.on("createChatMessage", async (message, options, userId) => {
+  if (!_velvetIsFirstGM()) return;
+  if (message.getFlag(VELVET_MODULE_ID, "soundPlayed")) return;
+
+  let item = null;
+
+  // PF2e origin UUID
+  const originUuid = message.flags?.pf2e?.origin?.uuid;
+  if (originUuid) {
+    try { item = await fromUuid(originUuid); } catch (e) { /* ignore */ }
+  }
+
+  // Casting ID fallback
+  if (!item) {
+    const castingId = message.flags?.pf2e?.casting?.id;
+    if (castingId) {
+      const actor = _velvetResolveActor(message.speaker);
+      if (actor) item = actor.items.get(castingId);
+    }
+  }
+
+  if (!item) return;
+
+  const soundCfg = _velvetResolveSoundConfig(item, message);
+  if (!soundCfg) return;
+
+  console.log("Velvet Sound (create) | Playing:", item.name, "| Playlist:", soundCfg.playlist, "| Track:", soundCfg.track);
+
+  await _velvetPlayItemSound(soundCfg.playlist, soundCfg.track, soundCfg.volume);
+  await message.setFlag(VELVET_MODULE_ID, "soundPlayed", true);
 });

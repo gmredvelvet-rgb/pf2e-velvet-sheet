@@ -1,6 +1,30 @@
-{
-  "pf2e-aaa-sheet": {
-    "title": "AAA Hoja de Personaje PF2e",
-    "sheetLabel": "AAA Hoja de Personaje PF2e"
+﻿{
+  "pf2e-velvet-sheet": {
+    "title": "Velvet Hoja de Personaje PF2e",
+    "sheetLabel": "Velvet Hoja de Personaje PF2e",
+    "sound": {
+      "configTitle": "Configuración de Sonido del Item",
+      "playlist": "Playlist",
+      "track": "Pista",
+      "volume": "Volumen",
+      "none": "— Ninguno —",
+      "randomTrack": "Pista Aleatoria",
+      "preview": "Escuchar",
+      "save": "Guardar",
+      "saveAll": "Guardar Todo",
+      "clear": "Limpiar",
+      "clearAll": "Limpiar Todo",
+      "configureSound": "Configurar Sonido",
+      "soundSaved": "Sonido guardado para",
+      "soundCleared": "Sonido eliminado para",
+      "selectFirst": "Selecciona una playlist y pista primero.",
+      "attack1": "1er Ataque",
+      "attack2": "2do Ataque (MAP -5)",
+      "attack3": "3er Ataque (MAP -10)",
+      "damage": "Daño",
+      "critical": "Crítico",
+      "strikeSaved": "Sonidos de golpe guardados para",
+      "allCleared": "Todos los sonidos de golpe eliminados para"
+    }
   }
 }

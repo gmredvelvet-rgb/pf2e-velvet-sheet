@@ -1,6 +1,30 @@
-{
-  "pf2e-aaa-sheet": {
-    "title": "AAA PF2e Character Sheet",
-    "sheetLabel": "AAA PF2e Character Sheet"
+﻿{
+  "pf2e-velvet-sheet": {
+    "title": "Velvet PF2e Sheet",
+    "sheetLabel": "Velvet PF2e Sheet",
+    "sound": {
+      "configTitle": "Item Sound Configuration",
+      "playlist": "Playlist",
+      "track": "Track",
+      "volume": "Volume",
+      "none": "— None —",
+      "randomTrack": "Random Track",
+      "preview": "Preview",
+      "save": "Save",
+      "saveAll": "Save All",
+      "clear": "Clear",
+      "clearAll": "Clear All",
+      "configureSound": "Configure Sound",
+      "soundSaved": "Sound saved for",
+      "soundCleared": "Sound cleared for",
+      "selectFirst": "Select a playlist and track first.",
+      "attack1": "1st Attack",
+      "attack2": "2nd Attack (MAP -5)",
+      "attack3": "3rd Attack (MAP -10)",
+      "damage": "Damage",
+      "critical": "Critical",
+      "strikeSaved": "Strike sounds saved for",
+      "allCleared": "All strike sounds cleared for"
+    }
   }
 }

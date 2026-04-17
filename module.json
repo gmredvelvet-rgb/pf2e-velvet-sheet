@@ -1,6 +1,6 @@
 {
-  "id": "pf2e-aaa-sheet",
-  "title": "AAA PF2e Character Sheet",
+  "id": "pf2e-velvet-sheet",
+  "title": "Velvet PF2e Sheet",
   "description": "Custom RPG-style character sheet for Pathfinder 2e with animated UI, parallax effects, and game-like aesthetics.",
   "version": "1.0.0",
   "compatibility": {
@@ -10,7 +10,7 @@
   },
   "authors": [
     {
-      "name": "AAA Studio"
+      "name": "Velvet Studio"
     }
   ],
   "relationships": {
@@ -26,10 +26,10 @@
     ]
   },
   "esmodules": [
-    "scripts/aaa-sheet.mjs"
+    "scripts/velvet-sheet.mjs"
   ],
   "styles": [
-    "styles/aaa-sheet.css"
+    "styles/velvet-sheet.css"
   ],
   "languages": [
     {

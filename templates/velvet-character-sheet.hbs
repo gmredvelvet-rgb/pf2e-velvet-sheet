@@ -1,10 +1,10 @@
-<div class="dnd-sheet">
+﻿<div class="dnd-sheet">
   <div class="bg" data-bg="{{bgImage}}"></div>
 
   <div class="layout">
 
     <!-- LEFT SIDEBAR -->
-    <div class="aaa-sidebar">
+    <div class="velvet-sidebar">
       <div class="char-quick-info">
         <div class="char-name">{{actor.name}}</div>
         <div class="char-class">{{className}}</div>
@@ -111,7 +111,7 @@
     </div>
 
     <!-- RIGHT PANEL -->
-    <div class="aaa-panel">
+    <div class="velvet-panel">
 
       <!-- ATTRIBUTES TAB -->
       <div class="tab active" data-tab="attributes">
@@ -408,6 +408,9 @@
               {{#if this.traits}}<span class="strike-traits">{{this.traits}}</span>{{/if}}
             </div>
             <div class="strike-controls">
+              {{#if this.weaponId}}
+              <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" data-item-id="{{this.weaponId}}" title="Configure Sound"><i class="fas fa-music"></i></span>
+              {{/if}}
               <button class="strike-attack" data-strike-idx="{{@index}}" data-variant="0" title="Strike (1st attack)">
                 <i class="fas fa-dice-d20"></i>
               </button>
@@ -454,6 +457,7 @@
                 {{#if this.traits}}<span class="feature-traits">{{this.traits}}</span>{{/if}}
               </div>
               <div class="feature-controls">
+                <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" title="Configure Sound"><i class="fas fa-music"></i></span>
                 <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
                 <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
                 <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
@@ -517,6 +521,7 @@
               <div class="inv-slot-hover">
                 <span class="inv-slot-name">{{this.name}}</span>
                 <div class="inv-slot-actions">
+                  <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" title="Configure Sound"><i class="fas fa-music"></i></span>
                   <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
                   {{#if this.isInvestable}}<span class="item-invest {{#if this.invested}}invested{{/if}}" title="Invest"><i class="fas fa-gem"></i></span>{{/if}}
                   <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
@@ -581,7 +586,7 @@
             <h4 class="spell-level-header">{{this.label}}</h4>
             <div class="prep-slot-list">
               {{#each this.slots}}
-              <div class="prep-slot {{#if this.expended}}expended{{/if}} {{#if this.empty}}empty{{/if}}" 
+              <div class="prep-slot {{#if this.expended}}expended{{/if}} {{#if this.empty}}empty{{/if}} {{#if this.isCantrip}}is-cantrip{{/if}}" 
                    data-entry-id="{{../../id}}" data-slot-key="{{../key}}" data-slot-index="{{this.slotIndex}}"
                    data-spell-id="{{this.spellId}}" draggable="{{#unless this.empty}}true{{else}}false{{/unless}}">
                 {{#if this.empty}}
@@ -592,6 +597,7 @@
                 <span class="prep-slot-name">{{this.name}}</span>
                 <div class="prep-slot-controls">
                   {{#if this.expended}}<span class="prep-slot-x" title="Expended"><i class="fas fa-times-circle"></i></span>{{/if}}
+                  <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" data-item-id="{{this.spellId}}" title="Configure Sound"><i class="fas fa-music"></i></span>
                   <span class="prep-slot-cast spell-use" data-item-id="{{this.spellId}}" data-entry-id="{{../../id}}" title="Cast"><i class="fas fa-dice-d20"></i></span>
                 </div>
                 {{/if}}
@@ -650,6 +656,7 @@
                   {{#if this.traits}}<span class="spell-school">{{this.traits}}</span>{{/if}}
                 </div>
                 <div class="spell-controls">
+                  <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" title="Configure Sound"><i class="fas fa-music"></i></span>
                   <span class="spell-use" title="Cast"><i class="fas fa-dice-d20"></i></span>
                   <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
                   <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
@@ -691,6 +698,7 @@
                 {{#if this.traits}}<span class="feature-traits">{{this.traits}}</span>{{/if}}
               </div>
               <div class="feature-controls">
+                <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" title="Configure Sound"><i class="fas fa-music"></i></span>
                 <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
                 <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
                 <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>

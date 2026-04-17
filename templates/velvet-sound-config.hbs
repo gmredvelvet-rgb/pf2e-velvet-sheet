@@ -1,0 +1,97 @@
+<form class="velvet-sound-config-form" autocomplete="off" onsubmit="event.preventDefault();">
+
+{{#if isStrike}}
+  {{!-- ===== STRIKE MODE: Tabbed per-roll-type ===== --}}
+  <div class="velvet-sound-tabs">
+    {{#each tabs}}
+    <button type="button" class="velvet-sound-tab {{#if this.active}}active{{/if}} {{#if this.hasSound}}has-sound{{/if}}" data-tab="{{this.key}}" title="{{this.label}}">
+      <i class="{{this.icon}}"></i>
+      {{#if (eq this.key "attack2")}}<span class="map-num">2</span>{{/if}}
+      {{#if (eq this.key "attack3")}}<span class="map-num">3</span>{{/if}}
+      {{#if (eq this.key "damage")}}<span class="tab-lbl">DMG</span>{{/if}}
+      {{#if (eq this.key "critical")}}<span class="tab-lbl">CRIT</span>{{/if}}
+      {{#if (eq this.key "attack1")}}<span class="tab-lbl">1st</span>{{/if}}
+    </button>
+    {{/each}}
+  </div>
+
+  {{#each tabs}}
+  <div class="velvet-sound-tab-panel {{#if this.active}}active{{/if}}" data-tab-panel="{{this.key}}">
+    <div class="form-group">
+      <label><i class="fas fa-list"></i> Playlist</label>
+      <select data-field="playlist" name="{{this.key}}.playlist">
+        <option value="">— None —</option>
+        {{#each ../playlists}}
+        <option value="{{this.id}}" {{#if (eq this.id ../playlistId)}}selected{{/if}}>{{this.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fas fa-music"></i> Track</label>
+      <select data-field="track" name="{{this.key}}.track">
+        <option value="">— None —</option>
+        {{#if this.tracks.length}}
+        <option value="random-track" {{#if (eq this.trackId "random-track")}}selected{{/if}}>🎲 Random Track</option>
+        {{/if}}
+        {{#each this.tracks}}
+        <option value="{{this.id}}" {{#if (eq this.id ../trackId)}}selected{{/if}}>{{this.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fas fa-volume-up"></i> Volume: <span class="velvet-vol-val">{{this.volumePct}}%</span></label>
+      <input type="range" data-field="volume" name="{{this.key}}.volume" min="0" max="1" step="0.05" value="{{this.volume}}">
+    </div>
+
+    <div class="form-group velvet-sound-buttons">
+      <button type="button" class="velvet-sound-preview"><i class="fas fa-play"></i> Preview</button>
+      <button type="button" class="velvet-sound-tab-clear" data-clear-tab="{{this.key}}"><i class="fas fa-times"></i> Clear</button>
+    </div>
+  </div>
+  {{/each}}
+
+  <div class="form-group velvet-sound-buttons velvet-sound-bottom-buttons">
+    <button type="submit" class="velvet-sound-save"><i class="fas fa-save"></i> Save All</button>
+    <button type="button" class="velvet-sound-clear-all"><i class="fas fa-trash"></i> Clear All</button>
+  </div>
+
+{{else}}
+  {{!-- ===== SIMPLE MODE: Single sound ===== --}}
+  <div class="form-group">
+    <label><i class="fas fa-list"></i> Playlist</label>
+    <select name="playlist">
+      <option value="">— None —</option>
+      {{#each playlists}}
+      <option value="{{this.id}}" {{#if (eq this.id ../currentPlaylist)}}selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label><i class="fas fa-music"></i> Track</label>
+    <select name="track">
+      <option value="">— None —</option>
+      {{#if tracks.length}}
+      <option value="random-track" {{#if (eq ../currentTrack "random-track")}}selected{{/if}}>🎲 Random Track</option>
+      {{/if}}
+      {{#each tracks}}
+      <option value="{{this.id}}" {{#if (eq this.id ../../currentTrack)}}selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label><i class="fas fa-volume-up"></i> Volume: <span class="velvet-vol-val">{{volumePct}}%</span></label>
+    <input type="range" name="volume" min="0" max="1" step="0.05" value="{{volume}}">
+  </div>
+
+  <div class="form-group velvet-sound-buttons">
+    <button type="button" class="velvet-sound-preview"><i class="fas fa-play"></i> Preview</button>
+    <button type="submit" class="velvet-sound-save"><i class="fas fa-save"></i> Save</button>
+    <button type="button" class="velvet-sound-clear"><i class="fas fa-times"></i> Clear</button>
+  </div>
+{{/if}}
+
+</form>
