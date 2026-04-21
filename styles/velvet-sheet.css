@@ -1837,8 +1837,8 @@
 
 /* Spell Filter Bar */
 .spell-filter-bar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-bottom: 10px;
 }
@@ -2930,8 +2930,8 @@
 /*  FEATURE FILTER BAR                    */
 /* ═══════════════════════════════════════ */
 .feat-filter-bar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-bottom: 10px;
 }
