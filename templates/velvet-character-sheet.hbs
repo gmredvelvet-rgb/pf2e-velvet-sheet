@@ -41,6 +41,11 @@
         </div>
       </nav>
 
+      <div class="velvet-branding">
+        <a class="branding-link" href="https://ko-fi.com/thegmstudio" target="_blank" title="Support us on Ko-fi"><i class="fas fa-mug-hot"></i></a>
+        <a class="branding-link" href="https://thegmstudio.com/" target="_blank" title="The GM Studio"><i class="fas fa-globe"></i></a>
+      </div>
+
       <div class="quick-actions">
         <button class="rest-action" data-rest="long" title="Rest for the Night"><i class="fas fa-bed"></i></button>
         <button class="initiative-roll" title="Roll Initiative"><i class="fas fa-fist-raised"></i></button>
@@ -53,6 +58,13 @@
       <div class="portrait-wrap">
         <img class="portrait" src="{{actor.img}}" title="Click to change portrait">
         <div class="portrait-vignette"></div>
+
+        <!-- Heartbeat Blood Overlay (persistent, based on HP%) -->
+        <img class="velvet-blood-overlay" src="modules/pf2e-velvet-sheet/images/bloody.webp">
+        <!-- Heartbeat Damage Flash (red/green radial on HP change) -->
+        <div class="velvet-damage-flash"></div>
+        <!-- Heartbeat Blood Splatters Container -->
+        <div class="velvet-splatter-container"></div>
 
         <!-- Hero Points -->
         <div class="hero-points-badge" title="Hero Points (Click: spend, Right-click: gain)">
@@ -443,6 +455,40 @@
         </div>
         {{/if}}
 
+        <!-- Toggles (Raise Shield, Parry, Sniper Aim, Taunt, etc.) -->
+        {{#if toggles.length}}
+        <div class="toggles-section">
+          <h3>Toggles</h3>
+          <div class="toggle-list">
+            {{#each toggles}}
+            <div class="toggle-entry {{#if this.checked}}active{{/if}} {{#unless this.enabled}}disabled{{/unless}}"
+                 data-domain="{{this.domain}}" data-option="{{this.option}}" data-item-id="{{this.itemId}}"
+                 title="{{this.label}} (Click to toggle)">
+              <span class="toggle-indicator"><i class="fas {{#if this.checked}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i></span>
+              <span class="toggle-label">{{this.label}}</span>
+              {{#if this.checked}}<span class="toggle-active-badge">ON</span>{{/if}}
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+
+        <!-- Exploration Activities -->
+        {{#if explorationActivities.length}}
+        <div class="exploration-section">
+          <h3>Exploration</h3>
+          <div class="exploration-list">
+            {{#each explorationActivities}}
+            <div class="exploration-entry {{#if this.active}}active{{/if}}" data-item-id="{{this.id}}" title="{{this.name}} (Click to toggle)">
+              <img class="exploration-img" src="{{this.img}}">
+              <span class="exploration-name">{{this.name}}</span>
+              {{#if this.active}}<span class="exploration-active-badge"><i class="fas fa-check"></i></span>{{/if}}
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+
         <!-- Actions / Reactions / Free -->
         {{#each actions}}
         {{#if this.items.length}}
@@ -478,9 +524,12 @@
           <button class="inv-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
           <button class="inv-filter" data-filter="weapons"><i class="fas fa-sword"></i> Weapons</button>
           <button class="inv-filter" data-filter="armor"><i class="fas fa-shield-alt"></i> Armor</button>
+          <button class="inv-filter" data-filter="shields"><i class="fas fa-shield-virus"></i> Shields</button>
           <button class="inv-filter" data-filter="equipment"><i class="fas fa-ring"></i> Equipment</button>
           <button class="inv-filter" data-filter="consumables"><i class="fas fa-flask"></i> Consum.</button>
+          <button class="inv-filter" data-filter="ammo"><i class="fas fa-crosshairs"></i> Ammo</button>
           <button class="inv-filter" data-filter="treasure"><i class="fas fa-gem"></i> Treasure</button>
+          <button class="inv-filter" data-filter="books"><i class="fas fa-book"></i> Books</button>
           <button class="inv-filter" data-filter="containers"><i class="fas fa-box"></i> Containers</button>
         </div>
 

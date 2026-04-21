@@ -231,9 +231,40 @@
   text-shadow: 0 0 8px rgba(200, 168, 78, 0.4);
 }
 
+/* Branding Links */
+.velvet-branding {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0 0;
+}
+
+.velvet-branding .branding-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--velvet-border);
+  border-radius: 50%;
+  color: var(--velvet-text-dim);
+  font-size: 12px;
+  text-decoration: none;
+  transition: all var(--velvet-transition);
+  cursor: pointer;
+}
+
+.velvet-branding .branding-link:hover {
+  color: var(--velvet-gold);
+  border-color: var(--velvet-gold);
+  background: rgba(200, 168, 78, 0.1);
+  box-shadow: 0 0 8px rgba(200, 168, 78, 0.25);
+  transform: scale(1.12);
+}
+
 /* Quick Actions */
 .quick-actions {
-  margin-top: auto;
   display: flex;
   justify-content: center;
   gap: 5px;
@@ -314,6 +345,92 @@
     linear-gradient(to right, rgba(8,8,8,0.5) 0%, transparent 15%, transparent 85%, rgba(8,8,8,0.5) 100%);
   pointer-events: none;
   z-index: 1;
+}
+
+/* ═══════════════════════════════════════ */
+/*  HEARTBEAT — Portrait Blood Overlays   */
+/* ═══════════════════════════════════════ */
+
+/* Persistent blood frame overlay — opacity scales with missing HP */
+.velvet-blood-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 2;
+  filter: blur(4px);
+  transition: opacity 0.8s ease;
+  border: none;
+}
+
+/* Heartbeat pulse animation when low HP */
+@keyframes velvet-heartbeat {
+  0%   { transform: scale(1); }
+  15%  { transform: scale(1.03); }
+  30%  { transform: scale(1); }
+  45%  { transform: scale(1.02); }
+  60%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+.velvet-blood-overlay.heartbeat-pulse {
+  animation: velvet-heartbeat 1.2s infinite ease-in-out;
+}
+
+/* Damage/heal flash overlay */
+.velvet-damage-flash {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
+  border-radius: 0;
+}
+@keyframes velvet-flash-fade {
+  0%   { opacity: 0.7; }
+  10%  { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+.velvet-damage-flash.flash-active {
+  animation: velvet-flash-fade 1.5s forwards;
+}
+
+/* Splatter container */
+.velvet-splatter-container {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+.velvet-splatter-container img {
+  position: absolute;
+  border: none;
+  filter: opacity(0.6) brightness(0.8);
+  pointer-events: none;
+  transition: opacity 8s linear;
+}
+
+/* Death state — grayscale portrait */
+.portrait-wrap.velvet-death .portrait {
+  filter: grayscale(1) brightness(0.3) contrast(1.05) !important;
+}
+.portrait-wrap.velvet-death .velvet-blood-overlay {
+  filter: blur(0) grayscale(1) brightness(0.2);
+}
+
+/* Portrait shake on damage */
+@keyframes velvet-portrait-shake {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-3px, 2px); }
+  40%  { transform: translate(3px, -2px); }
+  60%  { transform: translate(-2px, -1px); }
+  80%  { transform: translate(2px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+.portrait-wrap.velvet-shake {
+  animation: velvet-portrait-shake 0.35s ease-out;
 }
 
 /* Hero Points Badge */
@@ -1030,6 +1147,144 @@
 .ammo-select option {
   background: #1a1a1a;
   color: var(--velvet-text);
+}
+
+/* ═══════════════════════════════════════ */
+/*  TOGGLES SECTION (Raise Shield, etc.)  */
+/* ═══════════════════════════════════════ */
+.toggles-section {
+  margin-bottom: 14px;
+}
+
+.toggle-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.toggle-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--velvet-bg-card);
+  border: 1px solid var(--velvet-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.toggle-entry:hover {
+  background: var(--velvet-bg-hover);
+  border-color: var(--velvet-border-strong);
+}
+
+.toggle-entry.active {
+  background: rgba(200, 168, 78, 0.1);
+  border-color: var(--velvet-gold);
+  box-shadow: 0 0 6px rgba(200, 168, 78, 0.15);
+}
+
+.toggle-entry.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toggle-indicator {
+  font-size: 16px;
+  color: var(--velvet-text-dim);
+  transition: color 0.2s ease;
+  width: 18px;
+  text-align: center;
+}
+
+.toggle-entry.active .toggle-indicator {
+  color: var(--velvet-gold);
+  text-shadow: 0 0 6px rgba(200, 168, 78, 0.4);
+}
+
+.toggle-label {
+  font-family: var(--velvet-font-title);
+  font-size: 11px;
+  color: var(--velvet-text);
+  letter-spacing: 0.3px;
+  flex: 1;
+}
+
+.toggle-entry.active .toggle-label {
+  color: var(--velvet-text-bright);
+}
+
+.toggle-active-badge {
+  font-family: var(--velvet-font-title);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--velvet-gold);
+  background: rgba(200, 168, 78, 0.15);
+  padding: 1px 4px;
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════ */
+/*  EXPLORATION ACTIVITIES                */
+/* ═══════════════════════════════════════ */
+.exploration-section {
+  margin-bottom: 14px;
+}
+
+.exploration-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.exploration-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--velvet-bg-card);
+  border: 1px solid var(--velvet-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.exploration-entry:hover {
+  background: var(--velvet-bg-hover);
+  border-color: var(--velvet-border-strong);
+}
+
+.exploration-entry.active {
+  background: rgba(75, 160, 100, 0.1);
+  border-color: rgba(75, 160, 100, 0.5);
+  box-shadow: 0 0 6px rgba(75, 160, 100, 0.15);
+}
+
+.exploration-img {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--velvet-border);
+}
+
+.exploration-entry.active .exploration-img {
+  border-color: rgba(75, 160, 100, 0.5);
+}
+
+.exploration-name {
+  font-family: var(--velvet-font-title);
+  font-size: 11px;
+  color: var(--velvet-text);
+  letter-spacing: 0.3px;
+}
+
+.exploration-entry.active .exploration-name {
+  color: var(--velvet-text-bright);
+}
+
+.exploration-active-badge {
+  font-size: 10px;
+  color: rgba(75, 160, 100, 0.8);
 }
 
 /* Actions Category */
