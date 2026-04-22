@@ -17,7 +17,7 @@ class VelvetCharacterSheet extends ActorSheet {
       height: 720,
       resizable: true,
       tabs: [],
-      dragDrop: [{ dragSelector: "[data-item-id]", dropSelector: null }],
+      dragDrop: [{ dragSelector: "[data-item-id]", dropSelector: "" }],
       scrollY: [".velvet-panel .tab"]
     });
   }
@@ -717,7 +717,10 @@ class VelvetCharacterSheet extends ActorSheet {
     };
 
     for (const item of actor.items) {
-      if (item.type !== "action") continue;
+      const actionType = item.system.actionType?.value ?? "";
+      const isDirectAction = item.type === "action";
+      const isFeatWithCost = item.type === "feat" && ["action", "reaction", "free"].includes(actionType);
+      if (!isDirectAction && !isFeatWithCost) continue;
       const ctx = {
         id: item.id,
         name: item.name,
@@ -1436,6 +1439,7 @@ class VelvetCharacterSheet extends ActorSheet {
     });
     html.find(".prep-slot").on("drop", async (ev) => {
       ev.preventDefault();
+      ev.stopPropagation();
       let data;
       try { data = JSON.parse(ev.originalEvent.dataTransfer.getData("text/plain")); } catch { return; }
       if (data.type !== "Item") return;
@@ -1829,6 +1833,7 @@ class VelvetCharacterSheet extends ActorSheet {
       el.addEventListener("dragleave", () => el.classList.remove("pd-drag-over"));
       el.addEventListener("drop", async ev => {
         ev.preventDefault();
+        ev.stopPropagation();
         el.classList.remove("pd-drag-over");
         if (!this.isEditable) return;
         try {
