@@ -2394,6 +2394,12 @@
   background: var(--velvet-bg-hover);
 }
 
+/* Usable actions (those with selfEffect / frequency) get a subtle gold left border */
+.feature-entry.is-usable {
+  border-left: 2px solid rgba(200, 168, 78, 0.4);
+  padding-left: 4px;
+}
+
 .feature-img {
   width: 26px;
   height: 26px;
@@ -2412,6 +2418,33 @@
   font-size: 10px;
   color: var(--velvet-gold);
   display: block;
+}
+
+/* Frequency tracker (e.g. "2 / 3 /day") */
+.action-frequency {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--velvet-gold);
+  white-space: nowrap;
+  padding: 1px 5px;
+  background: rgba(200, 168, 78, 0.08);
+  border: 1px solid rgba(200, 168, 78, 0.2);
+  border-radius: 3px;
+  cursor: default;
+}
+
+.action-frequency .freq-value {
+  font-weight: 700;
+}
+
+.action-frequency .freq-sep {
+  color: var(--velvet-text-dim);
+}
+
+.action-frequency .freq-label {
+  color: var(--velvet-text-dim);
 }
 
 .feature-controls {
@@ -2434,6 +2467,17 @@
 
 .feature-controls span:hover {
   color: var(--velvet-gold);
+}
+
+/* USE button for items with frequency / selfEffect */
+.feature-controls .item-use {
+  color: var(--velvet-gold);
+  opacity: 0.8;
+}
+
+.feature-controls .item-use:hover {
+  color: #fff;
+  opacity: 1;
 }
 
 /* ═══════════════════════════════════════ */

@@ -407,6 +407,38 @@
       <div class="tab" data-tab="actions">
         <h2>Actions</h2>
 
+        <!-- Toggles (Raise Shield, Parry, Sniper Aim, Taunt, etc.) — shown at TOP like the original PF2e sheet -->
+        {{#if toggles.length}}
+        <div class="toggles-section">
+          <ul class="option-toggles" data-option-toggles>
+            {{#each toggles}}
+            <li class="toggle-entry{{#unless this.alwaysActive}} item{{/unless}} {{#if this.checked}}active{{/if}} {{#unless this.enabled}}disabled{{/unless}}"
+                data-item-id="{{this.itemId}}"
+                data-domain="{{this.domain}}"
+                data-option="{{this.option}}"
+                data-placement="{{this.placement}}">
+              <label>
+                <input type="checkbox"{{#if this.alwaysActive}} class="hidden"{{/if}}
+                       data-action="toggle-roll-option"
+                       {{disabled (or this.alwaysActive (not this.enabled))}}
+                       {{checked this.checked}} />
+                <span{{#unless (or this.checked this.enabled)}} class="unchecked-disabled"{{/unless}}>
+                  {{localize this.label}}
+                </span>
+                {{#if this.suboptions}}
+                <select {{#if (eq this.suboptions.length 1)}}disabled="disabled"{{else}}data-action="set-suboption"{{/if}}>
+                  {{#each this.suboptions}}
+                  <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{localize this.label}}</option>
+                  {{/each}}
+                </select>
+                {{/if}}
+              </label>
+            </li>
+            {{/each}}
+          </ul>
+        </div>
+        {{/if}}
+
         <!-- Strikes -->
         {{#if strikes.length}}
         <div class="strikes-section">
@@ -455,24 +487,6 @@
         </div>
         {{/if}}
 
-        <!-- Toggles (Raise Shield, Parry, Sniper Aim, Taunt, etc.) -->
-        {{#if toggles.length}}
-        <div class="toggles-section">
-          <h3>Toggles</h3>
-          <div class="toggle-list">
-            {{#each toggles}}
-            <div class="toggle-entry {{#if this.checked}}active{{/if}} {{#unless this.enabled}}disabled{{/unless}}"
-                 data-domain="{{this.domain}}" data-option="{{this.option}}" data-item-id="{{this.itemId}}"
-                 title="{{this.label}} (Click to toggle)">
-              <span class="toggle-indicator"><i class="fas {{#if this.checked}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i></span>
-              <span class="toggle-label">{{this.label}}</span>
-              {{#if this.checked}}<span class="toggle-active-badge">ON</span>{{/if}}
-            </div>
-            {{/each}}
-          </div>
-        </div>
-        {{/if}}
-
         <!-- Exploration Activities -->
         {{#if explorationActivities.length}}
         <div class="exploration-section">
@@ -496,15 +510,27 @@
           <h3>{{this.label}}</h3>
           <div class="feature-list">
             {{#each this.items}}
-            <div class="item feature-entry" data-item-id="{{this.id}}">
+            <div class="item feature-entry {{#if this.usable}}is-usable{{/if}}" data-item-id="{{this.id}}">
               <img class="feature-img" src="{{this.img}}" title="{{this.name}}">
               <div class="feature-info">
                 <span class="feature-name">{{this.name}}</span>
                 {{#if this.traits}}<span class="feature-traits">{{this.traits}}</span>{{/if}}
               </div>
+              {{#if this.frequency}}
+              <div class="action-frequency" data-item-id="{{this.id}}" title="Uses remaining">
+                <span class="freq-value">{{this.frequency.value}}</span>
+                <span class="freq-sep">/</span>
+                <span class="freq-max">{{this.frequency.max}}</span>
+                <span class="freq-label">{{this.frequency.label}}</span>
+              </div>
+              {{/if}}
               <div class="feature-controls">
                 <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" title="Configure Sound"><i class="fas fa-music"></i></span>
-                <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
+                {{#if this.usable}}
+                <span class="item-use" title="Use {{this.name}}"><i class="fas fa-play-circle"></i></span>
+                {{else}}
+                <span class="item-roll" title="Roll / Send to Chat"><i class="fas fa-dice-d20"></i></span>
+                {{/if}}
                 <span class="item-edit" title="Edit"><i class="fas fa-edit"></i></span>
                 <span class="item-delete" title="Delete"><i class="fas fa-trash"></i></span>
               </div>
