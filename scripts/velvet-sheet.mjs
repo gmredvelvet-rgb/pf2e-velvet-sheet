@@ -1293,15 +1293,18 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Item use — for items with selfEffect / frequency (action macros like Lucky Break,
     // Psi Strikes, Unleash Psyche, Raise a Shield, etc.)
-    // item.use() is the PF2e-native method: handles frequency decrement, self-effect
-    // application, and sends to chat properly.
+    // game.pf2e.rollItemMacro() is the correct PF2e-native entry point: it calls
+    // createUseActionMessage() which handles frequency decrement, self-effect
+    // application, and sends the full ability chat card (with "Apply Effect" button).
+    // Neither AbilityItemPF2e nor FeatPF2e expose a use() method — that only exists
+    // on game.pf2e.actions objects.
     html.find(".item-use").click(ev => {
       const itemId = ev.currentTarget.closest("[data-item-id]")?.dataset.itemId;
       const item = this.actor.items.get(itemId);
       if (!item) return;
       const nativeEvent = ev.originalEvent ?? ev;
-      if (typeof item.use === "function") {
-        item.use(nativeEvent);
+      if (typeof game.pf2e?.rollItemMacro === "function") {
+        game.pf2e.rollItemMacro(item.uuid, nativeEvent);
       } else if (item.toMessage) {
         item.toMessage(nativeEvent);
       }
