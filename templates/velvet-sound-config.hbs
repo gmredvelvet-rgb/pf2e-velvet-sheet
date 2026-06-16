@@ -49,6 +49,21 @@
       <button type="button" class="velvet-sound-preview"><i class="fas fa-play"></i> Preview</button>
       <button type="button" class="velvet-sound-tab-clear" data-clear-tab="{{this.key}}"><i class="fas fa-times"></i> Clear</button>
     </div>
+
+    <hr class="velvet-divider"/>
+    <div class="form-group velvet-image-group">
+      <label><i class="fas fa-image"></i> Action Image <span class="velvet-label-sub">(VN Combat)</span></label>
+      <div class="velvet-img-row">
+        <img class="velvet-action-img-preview" src="{{this.actionImage}}"{{#unless this.actionImage}} style="display:none;"{{/unless}} alt=""/>
+        <input type="hidden" name="{{this.key}}.actionImage" value="{{this.actionImage}}"/>
+        <button type="button" class="velvet-action-img-pick" data-tab-key="{{this.key}}" title="Pick image">
+          <i class="fas fa-folder-open"></i>
+        </button>
+        <button type="button" class="velvet-action-img-clear-img" data-tab-key="{{this.key}}" title="Clear image">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
   </div>
   {{/each}}
 
@@ -91,6 +106,22 @@
     <button type="button" class="velvet-sound-preview"><i class="fas fa-play"></i> Preview</button>
     <button type="submit" class="velvet-sound-save"><i class="fas fa-save"></i> Save</button>
     <button type="button" class="velvet-sound-clear"><i class="fas fa-times"></i> Clear</button>
+  </div>
+
+  <hr class="velvet-divider"/>
+  <div class="form-group velvet-image-group">
+    <label><i class="fas fa-image"></i> Action Image <span class="velvet-label-sub">(VN Combat)</span></label>
+    <div class="velvet-img-row">
+      <img class="velvet-action-img-preview" src="{{actionImage}}"{{#unless actionImage}} style="display:none;"{{/unless}} alt=""/>
+      <input type="hidden" name="actionImage" value="{{actionImage}}"/>
+      <button type="button" class="velvet-action-img-pick" title="Pick image">
+        <i class="fas fa-folder-open"></i>
+      </button>
+      <button type="button" class="velvet-action-img-clear-img" title="Clear image">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <p class="hint">Shown in the VN window when this action is used in Combat Stage mode.</p>
   </div>
 {{/if}}
 

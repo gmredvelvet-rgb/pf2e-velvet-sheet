@@ -25,12 +25,20 @@
       }
     ]
   },
+  "scripts": [
+    "lib/gsap.min.js",
+    "lib/anime.min.js"
+  ],
   "esmodules": [
-    "scripts/velvet-sheet.mjs"
+    "scripts/velvet-sheet.mjs",
+    "scripts/velvet-animations.mjs"
   ],
   "styles": [
     "styles/velvet-sheet.css"
   ],
+  "manifest": "https://raw.githubusercontent.com/gmredvelvet-rgb/pf2e-velvet-sheet/main/module.json",
+  "download": "https://github.com/gmredvelvet-rgb/pf2e-velvet-sheet/releases/latest/download/module.zip",
+  "url": "https://github.com/gmredvelvet-rgb/pf2e-velvet-sheet",
   "languages": [
     {
       "lang": "en",

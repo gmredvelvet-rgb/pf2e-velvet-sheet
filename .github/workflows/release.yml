@@ -1,0 +1,59 @@
+name: Release Module
+
+# Triggers on version tags: v1.0.0, v1.2.3, etc.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update module.json version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          jq --arg v "$VERSION" '.version = $v' module.json > module.tmp.json
+          mv module.tmp.json module.json
+          echo "Set module version to $VERSION"
+
+      - name: Build module ZIP
+        run: |
+          zip -r module.zip . \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "*.md" \
+            --exclude ".gitignore" \
+            --exclude "*.tmp.json"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.version.outputs.version }}"
+          tag_name: ${{ github.ref_name }}
+          body: |
+            ## Velvet PF2e Character Sheet — v${{ steps.version.outputs.version }}
+
+            ### Instalación en Foundry VTT
+            1. En Foundry VTT → Add-on Modules → Install Module
+            2. Pega esta URL en el campo **Manifest URL**:
+               ```
+               https://raw.githubusercontent.com/${{ github.repository }}/main/module.json
+               ```
+            3. Haz clic en **Install**
+
+            O descarga `module.zip` y extráelo manualmente en tu carpeta `Data/modules/`.
+          files: module.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

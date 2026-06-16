@@ -3,6 +3,8 @@
  * Custom RPG-style ActorSheet for Pathfinder 2e characters
  */
 
+import VA from "./velvet-animations.mjs";
+
 class VelvetCharacterSheet extends ActorSheet {
 
   /** Cached reference to PF2e's internal AttributeBuilder class */
@@ -259,6 +261,9 @@ class VelvetCharacterSheet extends ActorSheet {
     context.heritageItem = actor.heritage ? { id: actor.heritage.id, name: actor.heritage.name, img: actor.heritage.img } : null;
     context.backgroundItem = actor.background ? { id: actor.background.id, name: actor.background.name, img: actor.background.img } : null;
     context.deityItem = actor.deity ? { id: actor.deity.id, name: actor.deity.name, img: actor.deity.img } : null;
+
+    // Whether the portrait is a video file (WEBM, MP4, OGG) — needs <video> tag instead of <img>
+    context.portraitIsVideo = /\.(webm|mp4|ogg)$/i.test(actor.img ?? "");
 
     // Proficiencies (attacks, defenses, class DCs, spellcasting)
     context.proficiencies = this._prepareProficiencies(system, actor);
@@ -1028,12 +1033,14 @@ class VelvetCharacterSheet extends ActorSheet {
   /*  Event Listeners                             */
   /* -------------------------------------------- */
 
-  /** @override — stop heartbeat sound when sheet closes */
+  /** @override — stop heartbeat sound and ambient particles when sheet closes */
   async close(options) {
     if (this._heartbeatSound) {
       this._heartbeatSound.stop();
       this._heartbeatSound = null;
     }
+    VA.stopAmbientParticles();
+    this._velvetEntered = false;
     return super.close(options);
   }
 
@@ -1045,11 +1052,17 @@ class VelvetCharacterSheet extends ActorSheet {
     html.find(".nav-item").click(ev => {
       const tab = ev.currentTarget.dataset.tab;
       if (!tab) return;
+      const prevTab = this._activeTab;
+      const tabOrder = ["attributes","skills","actions","inventory","spells","feats","biography","effects"];
+      const dir = tabOrder.indexOf(tab) > tabOrder.indexOf(prevTab ?? "") ? 1 : -1;
       html.find(".nav-item").removeClass("active");
       $(ev.currentTarget).addClass("active");
       html.find(".velvet-panel > .tab").removeClass("active");
-      html.find(`.velvet-panel > .tab[data-tab="${tab}"]`).addClass("active");
+      const newPanel = html.find(`.velvet-panel > .tab[data-tab="${tab}"]`).addClass("active")[0];
       this._activeTab = tab;
+      VA.navItemClick(ev.currentTarget);
+      VA.tabSwitch(newPanel, dir);
+      VA.staggerReveal($(newPanel), ".inv-entry, .feat-entry, .spell-entry, .effect-entry, .action-entry");
     });
 
     // Restore last active tab
@@ -1079,6 +1092,35 @@ class VelvetCharacterSheet extends ActorSheet {
       html.find(".inventory-category").hide();
       html.find(`.inventory-category[data-category="${this._activeInvFilter}"]`).show();
     }
+
+    // Inventory slot popup — click to open above the tile, click outside to close
+    html.find(".inv-slot").click(ev => {
+      // If the click landed on an action button, let it pass through without toggling
+      if ($(ev.target).closest(".inv-slot-actions").length) return;
+      const $slot = $(ev.currentTarget);
+      const wasOpen = $slot.hasClass("inv-slot--open");
+      html.find(".inv-slot--open").removeClass("inv-slot--open inv-slot--open-down");
+      if (!wasOpen) {
+        // Detect whether there's room above; if not, flip popup downward
+        const panel = html.find(".velvet-panel")[0];
+        const panelRect = panel ? panel.getBoundingClientRect() : { top: 0 };
+        const slotRect = $slot[0].getBoundingClientRect();
+        const spaceAbove = slotRect.top - panelRect.top;
+        $slot.addClass("inv-slot--open");
+        if (spaceAbove < 110) $slot.addClass("inv-slot--open-down");
+      }
+      ev.stopPropagation();
+    });
+
+    // Close the popup when clicking anywhere on the sheet that isn't a slot
+    html[0].addEventListener("click", () => {
+      html.find(".inv-slot--open").removeClass("inv-slot--open");
+    }, false);
+
+    // Also close after any action button is activated
+    html.find(".inv-slot-actions span").click(() => {
+      html.find(".inv-slot--open").removeClass("inv-slot--open");
+    });
 
     // HP low-health pulse
     const hp = this.actor.system.attributes?.hp;
@@ -1203,6 +1245,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Saving throw roll
     html.find(".save-row").click(ev => {
+      VA.rollButtonClick(ev.currentTarget);
       const save = ev.currentTarget.dataset.save;
       if (!save) return;
       const nativeEvent = ev.originalEvent ?? ev;
@@ -1212,6 +1255,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Skill roll
     html.find(".skill-row").click(ev => {
+      VA.rollButtonClick(ev.currentTarget);
       const skill = ev.currentTarget.dataset.skill;
       if (!skill) return;
       const nativeEvent = ev.originalEvent ?? ev;
@@ -1221,6 +1265,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Perception roll
     html.find(".perception-roll").click(ev => {
+      VA.rollButtonClick(ev.currentTarget);
       const nativeEvent = ev.originalEvent ?? ev;
       const stat = this.actor.perception;
       if (stat?.roll) stat.roll({ event: nativeEvent });
@@ -1228,6 +1273,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Strike attack rolls (with MAP variants)
     html.find(".strike-attack").click(ev => {
+      VA.strikeRoll(ev.currentTarget);
       const idx = Number(ev.currentTarget.dataset.strikeIdx);
       const variantIdx = Number(ev.currentTarget.dataset.variant) || 0;
       const nativeEvent = ev.originalEvent ?? ev;
@@ -1239,6 +1285,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Strike damage roll
     html.find(".strike-damage").click(ev => {
+      VA.rollButtonClick(ev.currentTarget);
       const idx = Number(ev.currentTarget.dataset.strikeIdx);
       const nativeEvent = ev.originalEvent ?? ev;
       const strike = this.actor.system.actions?.[idx];
@@ -1247,6 +1294,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Strike critical damage roll
     html.find(".strike-critical").click(ev => {
+      VA.rollButtonClick(ev.currentTarget);
       const idx = Number(ev.currentTarget.dataset.strikeIdx);
       const nativeEvent = ev.originalEvent ?? ev;
       const strike = this.actor.system.actions?.[idx];
@@ -1559,7 +1607,15 @@ class VelvetCharacterSheet extends ActorSheet {
     // HP editing
     html.find(".hp-input").change(ev => {
       const value = parseInt(ev.target.value);
-      if (!isNaN(value)) this.actor.update({ "system.attributes.hp.value": value });
+      if (!isNaN(value)) {
+        const hp = this.actor.system.attributes?.hp;
+        const oldValue = hp?.value ?? value;
+        const max = hp?.max ?? 1;
+        const delta = value - oldValue;
+        const newPct = (value / max) * 100;
+        VA.hpChange(html, newPct, delta);
+        this.actor.update({ "system.attributes.hp.value": value });
+      }
     });
     html.find(".hp-temp-input").change(ev => {
       const value = parseInt(ev.target.value) || 0;
@@ -1574,7 +1630,8 @@ class VelvetCharacterSheet extends ActorSheet {
       const current = this.actor.system.attributes?.[condition]?.value ?? 0;
       const max = this.actor.system.attributes?.[condition]?.max ?? 4;
       if (current < max) {
-        // PF2e tracks these via condition items — use the PF2e API if available
+        VA.conditionPipToggle(ev.currentTarget, true);
+        if (condition === "dying") VA.dyingIncreased(html);
         const existing = this.actor.getCondition?.(condition);
         if (existing) {
           this.actor.increaseCondition?.(condition);
@@ -1590,6 +1647,7 @@ class VelvetCharacterSheet extends ActorSheet {
       if (!condition) return;
       const current = this.actor.system.attributes?.[condition]?.value ?? 0;
       if (current > 0) {
+        VA.conditionPipToggle(ev.currentTarget, false);
         this.actor.decreaseCondition?.(condition) ?? this.actor.update({ [`system.attributes.${condition}.value`]: current - 1 });
       }
     });
@@ -1604,6 +1662,8 @@ class VelvetCharacterSheet extends ActorSheet {
     html.find(".level-input").change(ev => {
       const value = parseInt(ev.target.value);
       if (!isNaN(value) && value >= 0 && value <= 30) {
+        const oldLevel = this.actor.system.details?.level?.value ?? 0;
+        if (value > oldLevel) VA.levelUpBurst(html);
         this.actor.update({ "system.details.level.value": value });
       }
     });
@@ -1849,7 +1909,7 @@ class VelvetCharacterSheet extends ActorSheet {
       if (!this.isEditable) return;
       if (html.find(".paperdoll-overlay.active").length) return;
       const fp = new FilePicker({
-        type: "image",
+        type: "imagevideo",
         current: this.actor.img,
         callback: path => this.actor.update({ img: path })
       });
@@ -1923,6 +1983,21 @@ class VelvetCharacterSheet extends ActorSheet {
       if (!this.isEditable) return;
       await this.actor.unsetFlag("pf2e-velvet-sheet", "paperDollSlots");
     });
+
+    // Item-use button on action entries
+    html.find(".item-use, .action-use").click(ev => {
+      VA.rollButtonClick(ev.currentTarget);
+    });
+
+    // ── Sheet Entrance Animation ──
+    // Only run on first render (not re-renders from data updates)
+    if (!this._velvetEntered) {
+      this._velvetEntered = true;
+      VA.sheetEnter(html);
+    } else {
+      // On data re-renders just restart ambient particles quietly
+      VA._startAmbientParticles(html);
+    }
   }
 
   /* -------------------------------------------- */
@@ -2070,6 +2145,39 @@ async function _velvetSetActorSoundConfig(actor, item, config) {
   const key = _velvetSoundKey(item);
   // Use dot-notation to update only the specific key within the itemSounds object
   await actor.setFlag(VELVET_MODULE_ID, `itemSounds.${key}`, config);
+}
+
+/* ── Action Image helpers (actor-level, keyed like sounds) ── */
+
+function _velvetGetActorImageConfig(actor, item) {
+  if (!actor || !item) return null;
+  const allImages = actor.getFlag(VELVET_MODULE_ID, "itemImages") ?? {};
+  return allImages[_velvetSoundKey(item)] ?? null;
+}
+
+async function _velvetSetActorImageConfig(actor, item, images) {
+  if (!actor || !item) return;
+  await actor.setFlag(VELVET_MODULE_ID, `itemImages.${_velvetSoundKey(item)}`, images);
+}
+
+async function _velvetRemoveActorImageConfig(actor, item) {
+  if (!actor || !item) return;
+  const all = foundry.utils.deepClone(actor.getFlag(VELVET_MODULE_ID, "itemImages") ?? {});
+  delete all[_velvetSoundKey(item)];
+  await actor.setFlag(VELVET_MODULE_ID, "itemImages", all);
+}
+
+function _velvetResolveImageConfig(item, message) {
+  const actor = item.parent ?? item.actor ?? null;
+  const cfg = actor ? _velvetGetActorImageConfig(actor, item) : null;
+  if (!cfg) return null;
+  if (cfg.images) {
+    const rollType = _velvetDetectRollType(message);
+    if (rollType && cfg.images[rollType]) return cfg.images[rollType];
+    if (rollType?.startsWith("attack") && cfg.images.attack1) return cfg.images.attack1;
+    if (rollType === "critical" && cfg.images.damage) return cfg.images.damage;
+  }
+  return cfg.image ?? null;
 }
 
 async function _velvetSetActorSoundConfigForItems(actor, items, config) {
@@ -2237,6 +2345,7 @@ class VelvetSoundConfig extends FormApplication {
   async getData() {
     const allPlaylists = game.playlists.contents;
     const actorCfg = this.actor ? _velvetGetActorSoundConfig(this.actor, this.item) : null;
+    const imageCfg = this.actor ? _velvetGetActorImageConfig(this.actor, this.item) : null;
 
     if (this.isStrike) {
       const sounds = actorCfg?.sounds ?? this.item.getFlag(VELVET_MODULE_ID, "sounds") ?? {};
@@ -2256,7 +2365,8 @@ class VelvetSoundConfig extends FormApplication {
           volume,
           volumePct: Math.round(volume * 100),
           tracks: playlist ? playlist.sounds.contents : [],
-          hasSound: !!(playlistId && trackId)
+          hasSound: !!(playlistId && trackId),
+          actionImage: imageCfg?.images?.[key] ?? ""
         };
       });
       return { isStrike: true, tabs, playlists: allPlaylists, activeTab: this._activeTab };
@@ -2274,26 +2384,30 @@ class VelvetSoundConfig extends FormApplication {
       currentTrack: trackId,
       tracks: playlist ? playlist.sounds.contents : [],
       volume,
-      volumePct: Math.round(volume * 100)
+      volumePct: Math.round(volume * 100),
+      actionImage: imageCfg?.image ?? ""
     };
   }
 
   async _updateObject(event, formData) {
     if (this.isStrike) {
-      // Build sounds object from all tabs
+      // Build sounds and images objects from all tabs
       const sounds = {};
+      const images = {};
       for (const key of VelvetSoundConfig.ROLL_TYPES) {
         sounds[key] = {
           playlist: formData[`${key}.playlist`] || "",
           track: formData[`${key}.track`] || "",
           volume: Number.parseFloat(formData[`${key}.volume`]) || 0.8
         };
+        const img = formData[`${key}.actionImage`] ?? "";
+        if (img) images[key] = img;
       }
-      // Save to actor-level storage (persistent, survives item rebuild)
       if (this.actor) {
         await _velvetSetActorSoundConfig(this.actor, this.item, { sounds });
+        const existingImg = _velvetGetActorImageConfig(this.actor, this.item) ?? {};
+        await _velvetSetActorImageConfig(this.actor, this.item, { ...existingImg, images });
       }
-      // Also save to item flags (for backward compat / immediate playback)
       await this.item.setFlag(VELVET_MODULE_ID, "sounds", sounds);
       ui.notifications.info(`Strike sounds saved for ${this.item.name}`);
     } else {
@@ -2305,11 +2419,11 @@ class VelvetSoundConfig extends FormApplication {
       const linkedItems = this.item.type === "spell"
         ? _velvetGetPreparedSpellGroup(this.actor, this.item)
         : [this.item];
-      // Save to actor-level storage (persistent, survives item rebuild)
       if (this.actor) {
         await _velvetSetActorSoundConfigForItems(this.actor, linkedItems, config);
+        const existingImg = _velvetGetActorImageConfig(this.actor, this.item) ?? {};
+        await _velvetSetActorImageConfig(this.actor, this.item, { ...existingImg, image: formData.actionImage ?? "" });
       }
-      // Also save to item flags (for backward compat / immediate playback)
       await Promise.all(linkedItems.map(linkedItem => linkedItem.update({
         [`flags.${VELVET_MODULE_ID}.soundPlaylist`]: config.playlist,
         [`flags.${VELVET_MODULE_ID}.soundTrack`]: config.track,
@@ -2383,12 +2497,36 @@ class VelvetSoundConfig extends FormApplication {
           this._tabPlaylists[key] = "";
         }
         await this.item.setFlag(VELVET_MODULE_ID, "sounds", empty);
-        // Also clear from actor-level storage
         if (this.actor) {
           await _velvetRemoveActorSoundConfig(this.actor, this.item);
         }
         ui.notifications.info(`All strike sounds cleared for ${this.item.name}`);
         this.render();
+      });
+
+      // Action image — per-tab FilePicker
+      html.find(".velvet-action-img-pick[data-tab-key]").on("click", ev => {
+        const tabKey = ev.currentTarget.dataset.tabKey;
+        const panel = html.find(`[data-tab-panel="${tabKey}"]`)[0];
+        const hidden = panel?.querySelector(`[name="${tabKey}.actionImage"]`);
+        const preview = panel?.querySelector(".velvet-action-img-preview");
+        new FilePicker({
+          type: "image",
+          current: hidden?.value || "",
+          callback: path => {
+            if (hidden) hidden.value = path;
+            if (preview) { preview.src = path; preview.style.display = ""; }
+          }
+        }).browse();
+      });
+
+      html.find(".velvet-action-img-clear-img[data-tab-key]").on("click", ev => {
+        const tabKey = ev.currentTarget.dataset.tabKey;
+        const panel = html.find(`[data-tab-panel="${tabKey}"]`)[0];
+        const hidden = panel?.querySelector(`[name="${tabKey}.actionImage"]`);
+        const preview = panel?.querySelector(".velvet-action-img-preview");
+        if (hidden) hidden.value = "";
+        if (preview) { preview.src = ""; preview.style.display = "none"; }
       });
 
     } else {
@@ -2422,7 +2560,6 @@ class VelvetSoundConfig extends FormApplication {
           [`flags.${VELVET_MODULE_ID}.soundTrack`]: "",
           [`flags.${VELVET_MODULE_ID}.soundVolume`]: 0.8
         })));
-        // Also clear from actor-level storage
         if (this.actor) {
           await _velvetRemoveActorSoundConfigForItems(this.actor, linkedItems);
         }
@@ -2434,6 +2571,27 @@ class VelvetSoundConfig extends FormApplication {
         );
         this._selectedPlaylist = "";
         this.render();
+      });
+
+      // Action image — simple mode FilePicker
+      html.find(".velvet-action-img-pick:not([data-tab-key])").on("click", () => {
+        const hidden = html.find("[name='actionImage']")[0];
+        const preview = html.find(".velvet-action-img-preview")[0];
+        new FilePicker({
+          type: "image",
+          current: hidden?.value || "",
+          callback: path => {
+            if (hidden) hidden.value = path;
+            if (preview) { preview.src = path; preview.style.display = ""; }
+          }
+        }).browse();
+      });
+
+      html.find(".velvet-action-img-clear-img:not([data-tab-key])").on("click", () => {
+        const hidden = html.find("[name='actionImage']")[0];
+        const preview = html.find(".velvet-action-img-preview")[0];
+        if (hidden) hidden.value = "";
+        if (preview) { preview.src = ""; preview.style.display = "none"; }
       });
     }
   }
@@ -2612,7 +2770,7 @@ function _velvetResolveSoundConfig(item, message) {
   return null;
 }
 
-Hooks.on("renderChatMessage", async (message, html, data) => {
+Hooks.on("renderChatMessageHTML", async (message, html, data) => {
   // Only the first active GM processes sound playback
   if (!_velvetIsFirstGM()) return;
 
@@ -2626,7 +2784,16 @@ Hooks.on("renderChatMessage", async (message, html, data) => {
   if (originUuid) {
     try {
       item = await fromUuid(originUuid);
-      console.log("Velvet Sound | Item via origin UUID:", item?.name, originUuid);
+      // fromUuid() returns null for PF2e synthetic items (e.g. xxPF2ExUNARMEDxx unarmed attack).
+      // Fall back to resolving from the owning actor's items collection directly.
+      if (!item) {
+        const m = originUuid.match(/^Actor\.([^.]+)\.Item\.(.+)$/);
+        if (m) {
+          const actor = game.actors.get(m[1]);
+          if (actor) item = actor.items.get(m[2]) ?? null;
+        }
+      }
+      if (item) console.log("Velvet Sound | Item via origin UUID:", item.name, originUuid);
     } catch (e) {
       console.warn("Velvet Sound | Could not resolve origin UUID:", originUuid, e);
     }
@@ -2735,4 +2902,43 @@ Hooks.on("createChatMessage", async (message, options, userId) => {
 
   await _velvetPlayItemSound(soundCfg.playlist, soundCfg.track, soundCfg.volume);
   await message.setFlag(VELVET_MODULE_ID, "soundPlayed", true);
+});
+
+// Action image hook — no GM guard, fires on all clients so every player sees the overlay.
+Hooks.on("createChatMessage", async (message) => {
+  try {
+    let item = null;
+    const originUuid = message.flags?.pf2e?.origin?.uuid;
+    if (originUuid) {
+      try { item = await fromUuid(originUuid); } catch (e) { /* ignore */ }
+    }
+    if (!item) {
+      const castingId = message.flags?.pf2e?.casting?.id;
+      if (castingId) {
+        const actor = _velvetResolveActor(message.speaker);
+        if (actor) item = actor.items.get(castingId);
+      }
+    }
+    if (!item) return;
+
+    const imagePath = _velvetResolveImageConfig(item, message);
+    if (!imagePath) return;
+
+    const actor = item.parent ?? item.actor ?? _velvetResolveActor(message.speaker);
+    const pf2eType = _velvetDetectRollType(message);
+    const rollType = pf2eType === "critical" ? "critical"
+      : pf2eType === "damage" ? "damage"
+      : pf2eType?.startsWith("attack") ? "attack"
+      : "attack";
+
+    Hooks.callAll("vnd-enhanced.actionImage", {
+      imagePath,
+      actorName: actor?.name ?? message.speaker?.alias ?? "",
+      actorImg: actor?.img ?? "",
+      actionName: item.name ?? "",
+      rollType
+    });
+  } catch (e) {
+    console.warn("Velvet Sheet | createChatMessage image error:", e);
+  }
 });

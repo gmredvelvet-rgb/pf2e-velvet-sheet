@@ -16,28 +16,28 @@
 
       <nav class="nav-list">
         <div class="nav-item active" data-tab="attributes">
-          <i class="fas fa-shield-alt"></i><span>Attributes</span>
+          <i class="fas fa-chess-rook"></i><span>Attributes</span>
         </div>
         <div class="nav-item" data-tab="skills">
-          <i class="fas fa-running"></i><span>Skills</span>
+          <i class="fas fa-eye"></i><span>Skills</span>
         </div>
         <div class="nav-item" data-tab="actions">
           <i class="fas fa-fist-raised"></i><span>Actions</span>
         </div>
         <div class="nav-item" data-tab="inventory">
-          <i class="fas fa-suitcase"></i><span>Inventory</span>
+          <i class="fas fa-box-open"></i><span>Inventory</span>
         </div>
         <div class="nav-item" data-tab="spells">
-          <i class="fas fa-hat-wizard"></i><span>Spells</span>
+          <i class="fas fa-fire"></i><span>Spells</span>
         </div>
         <div class="nav-item" data-tab="feats">
-          <i class="fas fa-star"></i><span>Feats</span>
+          <i class="fas fa-scroll"></i><span>Feats</span>
         </div>
         <div class="nav-item" data-tab="biography">
-          <i class="fas fa-scroll"></i><span>Biography</span>
+          <i class="fas fa-book"></i><span>Biography</span>
         </div>
         <div class="nav-item" data-tab="effects">
-          <i class="fas fa-bolt"></i><span>Effects</span>
+          <i class="fas fa-skull"></i><span>Effects</span>
         </div>
       </nav>
 
@@ -47,8 +47,8 @@
       </div>
 
       <div class="quick-actions">
-        <button class="rest-action" data-rest="long" title="Rest for the Night"><i class="fas fa-bed"></i></button>
-        <button class="initiative-roll" title="Roll Initiative"><i class="fas fa-fist-raised"></i></button>
+        <button class="rest-action" data-rest="long" title="Rest for the Night"><i class="fas fa-moon"></i></button>
+        <button class="initiative-roll" title="Roll Initiative"><i class="fas fa-bolt"></i></button>
         <button class="bg-picker" title="Change Background"><i class="fas fa-image"></i></button>
       </div>
     </div>
@@ -56,11 +56,15 @@
     <!-- CENTER: Full Body Portrait -->
     <div class="center">
       <div class="portrait-wrap">
+        {{#if portraitIsVideo}}
+        <video class="portrait" src="{{actor.img}}" autoplay loop muted playsinline title="Click to change portrait"></video>
+        {{else}}
         <img class="portrait" src="{{actor.img}}" title="Click to change portrait">
+        {{/if}}
         <div class="portrait-vignette"></div>
 
         <!-- Heartbeat Blood Overlay (persistent, based on HP%) -->
-        <img class="velvet-blood-overlay" src="modules/pf2e-velvet-sheet/images/bloody.webp">
+        <img class="velvet-blood-overlay" src="modules/dnd-velvet-sheets/images/bloody.webp">
         <!-- Heartbeat Damage Flash (red/green radial on HP change) -->
         <div class="velvet-damage-flash"></div>
         <!-- Heartbeat Blood Splatters Container -->
