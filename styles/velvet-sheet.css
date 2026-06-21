@@ -36,9 +36,9 @@
   --velvet-border-glow: rgba(200, 168, 78, 0.55);
 
   /* Text */
-  --velvet-text: #c0b090;
+  --velvet-text: #c8b07a;
   --velvet-text-bright: #ecdfc0;
-  --velvet-text-dim: #a89070;
+  --velvet-text-dim: #c4a040;
   --velvet-text-accent: #f0d48a;
 
   /* Semantic */
@@ -277,6 +277,7 @@
   gap: 9px;
   position: relative;
   overflow: hidden;
+  text-shadow: 0 0 8px rgba(200, 168, 78, 0.2), 0 1px 2px rgba(0,0,0,0.6);
 }
 
 .nav-item::before {
@@ -701,6 +702,7 @@
   color: var(--velvet-text-dim);
   display: block;
   margin-top: 2px;
+  text-shadow: 0 0 6px rgba(200, 168, 78, 0.25), 0 1px 2px rgba(0,0,0,0.5);
 }
 
 /* ═══════════════════════════════════════ */
@@ -749,6 +751,7 @@
   color: var(--velvet-text-dim);
   display: block;
   margin-bottom: 2px;
+  text-shadow: 0 0 6px rgba(200, 168, 78, 0.25), 0 1px 2px rgba(0,0,0,0.5);
 }
 
 .stat:hover .stat-label {
@@ -960,6 +963,7 @@
   letter-spacing: 1.2px;
   color: var(--velvet-text-dim);
   margin-top: 3px;
+  text-shadow: 0 0 6px rgba(200, 168, 78, 0.25), 0 1px 2px rgba(0,0,0,0.5);
 }
 
 /* ═══════════════════════════════════════ */
@@ -1829,7 +1833,7 @@
   color: var(--velvet-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.6;
+  text-shadow: 0 0 5px rgba(200, 168, 78, 0.2);
 }
 
 /* Key ability indicator */
@@ -4596,9 +4600,9 @@
   --velvet-border:            rgba(180, 110, 15, 0.12);
   --velvet-border-strong:     rgba(200, 140, 25, 0.36);
   --velvet-border-glow:       rgba(200, 140, 25, 0.55);
-  --velvet-text:              #b09870;
+  --velvet-text:              #c8b07a;
   --velvet-text-bright:       #e0cca0;
-  --velvet-text-dim:          #5a4830;
+  --velvet-text-dim:          #c4a040;
   --velvet-text-accent:       #e8b020;
   --velvet-shadow-glow:       0 0 12px rgba(191, 122, 16, 0.22);
   --velvet-shadow-glow-strong:0 0 20px rgba(191, 122, 16, 0.38);
@@ -4965,7 +4969,7 @@
   color: var(--velvet-text-dim) !important;
   margin-bottom: 16px !important;
   padding-bottom: 10px !important;
-  text-shadow: none !important;
+  text-shadow: 0 0 12px rgba(200, 168, 78, 0.3), 0 1px 2px rgba(0,0,0,0.8) !important;
 }
 .velvet-panel h2::after {
   background: linear-gradient(90deg,
@@ -4981,7 +4985,7 @@
   letter-spacing: 3px !important;
   color: var(--velvet-text-dim) !important;
   margin-top: 18px !important;
-  opacity: 0.75;
+  text-shadow: 0 0 8px rgba(200, 168, 78, 0.25), 0 1px 2px rgba(0,0,0,0.7) !important;
 }
 
 /* ── 13. HP BAR — Estus Flask parallelogram ──────────────────────── */
