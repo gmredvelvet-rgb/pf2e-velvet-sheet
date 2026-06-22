@@ -30,6 +30,7 @@
     "lib/anime.min.js"
   ],
   "esmodules": [
+    "scripts/license-client.mjs",
     "scripts/velvet-sheet.mjs",
     "scripts/velvet-animations.mjs"
   ],

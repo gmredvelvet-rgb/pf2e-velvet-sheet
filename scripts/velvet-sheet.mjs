@@ -4,6 +4,7 @@
  */
 
 import VA from "./velvet-animations.mjs";
+import { VelvetLicenseClient, VelvetLicenseUI } from "./license-client.mjs";
 
 class VelvetCharacterSheet extends ActorSheet {
 
@@ -1044,9 +1045,64 @@ class VelvetCharacterSheet extends ActorSheet {
     return super.close(options);
   }
 
+  _injectLicenseOverlay(html) {
+    const root = html instanceof jQuery ? html[0] : html;
+    if (!root) return;
+    root.style.position = 'relative';
+    const overlay = document.createElement('div');
+    overlay.className = 'velvet-license-overlay';
+    overlay.style.cssText = `
+      position:absolute;inset:0;z-index:9999;
+      background:rgba(10,8,20,0.93);
+      display:flex;align-items:center;justify-content:center;
+      border-radius:inherit;
+    `;
+    overlay.innerHTML = `
+      <div style="text-align:center;padding:32px;max-width:360px">
+        <div style="font-size:3rem;margin-bottom:12px">🔐</div>
+        <h2 style="color:#c89b3c;margin:0 0 8px;font-family:system-ui">Velvet PF2e Sheet</h2>
+        <p style="color:#a09080;font-size:.9rem;line-height:1.5;margin-bottom:24px">
+          A Patreon subscription is required to use this character sheet.<br>
+          Connect your account to unlock it.
+        </p>
+        <button class="velvet-lic-connect" style="
+          background:#c89b3c;color:#1a1a2e;border:none;border-radius:8px;
+          padding:12px 24px;font-size:.95rem;font-weight:700;cursor:pointer;
+          display:block;width:100%;margin-bottom:10px
+        ">Connect Patreon</button>
+        <button class="velvet-lic-code" style="
+          background:transparent;color:#a09080;border:1px solid #555;border-radius:8px;
+          padding:9px 16px;font-size:.82rem;cursor:pointer;display:block;width:100%
+        ">I have an auth code</button>
+      </div>
+    `;
+    overlay.querySelector('.velvet-lic-connect').addEventListener('click', async () => {
+      const btn = overlay.querySelector('.velvet-lic-connect');
+      btn.textContent = 'Opening Patreon...';
+      btn.disabled = true;
+      try {
+        const success = await VelvetLicenseClient.instance.startOAuth();
+        if (success) this.render(true);
+        else { btn.textContent = 'Connect Patreon'; btn.disabled = false; }
+      } catch (e) {
+        btn.textContent = 'Connect Patreon'; btn.disabled = false;
+        ui.notifications?.error(`Velvet PF2e Sheet: ${e.message}`);
+      }
+    });
+    overlay.querySelector('.velvet-lic-code').addEventListener('click', () => {
+      VelvetLicenseUI.showCodeInput();
+    });
+    root.appendChild(overlay);
+  }
+
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
+
+    if (!game.settings.get(VELVET_MODULE_ID, "worldLicensed")) {
+      this._injectLicenseOverlay(html);
+      return;
+    }
 
     // Manual tab navigation
     html.find(".nav-item").click(ev => {
@@ -2602,6 +2658,11 @@ class VelvetSoundConfig extends FormApplication {
 /* ============================================= */
 
 Hooks.once("init", () => {
+  // World-level license flag — set by GM after Patreon auth, read by all clients
+  game.settings.register(VELVET_MODULE_ID, "worldLicensed", {
+    scope: "world", type: Boolean, config: false, default: false
+  });
+
   Actors.registerSheet("pf2e", VelvetCharacterSheet, {
     types: ["character"],
     makeDefault: false,
@@ -2630,6 +2691,19 @@ Hooks.once("init", () => {
  * Runs once per actor when Foundry is ready.
  */
 Hooks.once("ready", () => {
+  // Initialize license — if already authenticated, tokens are validated from localStorage
+  VelvetLicenseClient.instance.initialize().then(tokenValid => {
+    const worldLicensed = game.settings.get(VELVET_MODULE_ID, "worldLicensed");
+    if (!tokenValid && !worldLicensed) {
+      VelvetLicenseUI.show();
+    } else if (tokenValid && !worldLicensed && game.user?.isGM) {
+      // Token is valid but world setting hasn't been set yet (e.g. new GM client)
+      game.settings.set(VELVET_MODULE_ID, "worldLicensed", true).catch(() => {});
+    }
+  }).catch(() => {
+    if (!game.settings.get(VELVET_MODULE_ID, "worldLicensed")) VelvetLicenseUI.show();
+  });
+
   // Only the first GM runs migration
   if (!_velvetIsFirstGM()) return;
 
