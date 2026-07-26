@@ -4,9 +4,26 @@
  */
 
 const VA = {
-  /** Safety wrapper — returns gsap or null */
-  get gsap() { return typeof gsap !== "undefined" ? gsap : null; },
-  get anime() { return typeof anime !== "undefined" ? anime : null; },
+  /** True when the user asked the OS to minimize animation */
+  get reducedMotion() {
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+  },
+
+  /**
+   * Safety wrapper — returns gsap or null.
+   * Also returns null under prefers-reduced-motion: every VA method already
+   * null-checks this getter, so one guard disables all scripted animation
+   * without leaving elements in a half-animated state (initial gsap.set calls
+   * are skipped along with the tweens).
+   */
+  get gsap() {
+    if (this.reducedMotion) return null;
+    return typeof gsap !== "undefined" ? gsap : null;
+  },
+  get anime() {
+    if (this.reducedMotion) return null;
+    return typeof anime !== "undefined" ? anime : null;
+  },
 
   // ─────────────────────────────────────────────────────────────────────────
   // SHEET ENTRANCE
@@ -317,6 +334,10 @@ const VA = {
 
     const spawn = () => {
       if (!container.isConnected) { clearInterval(this._ambientInterval); return; }
+      // Don't spawn while the tab is hidden (rAF pauses, embers would pile up)
+      if (document.hidden) return;
+      // Hard cap on live particles — keeps long sessions cheap
+      if (container.querySelectorAll(".velvet-ember").length >= 14) return;
       const p = document.createElement("div");
       p.className = "velvet-ember";
       const size   = 2 + Math.random() * 3;

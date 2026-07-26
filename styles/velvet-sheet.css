@@ -3,7 +3,8 @@
 /*  Velvet Dark Fantasy Aesthetic          */
 /* ═══════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Cinzel+Decorative:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+/* Fonts are self-hosted in ../fonts via styles/velvet-fonts.css (loaded from
+   module.json) — no runtime Google Fonts dependency, works fully offline. */
 
 /* ═══════════════════════════════════════ */
 /*  ROOT VARIABLES                        */
@@ -3753,13 +3754,14 @@
   right: 0;
   bottom: 0;
   z-index: 4;
-  display: none;
+  /* Always laid out (never display:none) — the action cluster inside
+     .pd-center-spacer holds the open/close toggle and must stay reachable
+     even while the doll is closed. Only the equipment-slot groups below
+     fade in/out individually; a shared parent opacity can't be "undone" by
+     a descendant, so each leaf group is faded on its own instead. */
+  display: flex;
   flex-direction: column;
   pointer-events: none;
-}
-
-.paperdoll-overlay.active {
-  display: flex;
 }
 
 .pd-gradient {
@@ -3773,6 +3775,8 @@
     radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.5) 100%);
   pointer-events: none;
   z-index: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .pd-layout {
@@ -3791,6 +3795,13 @@
   pointer-events: all;
 }
 
+.pd-col.pd-left,
+.pd-col.pd-right {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
 .pd-center-spacer {
   flex: 1;
   pointer-events: none;
@@ -3803,7 +3814,29 @@
   padding: 6px 10px 12px;
   position: relative;
   z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.paperdoll-overlay.active .pd-gradient,
+.paperdoll-overlay.active .pd-col.pd-left,
+.paperdoll-overlay.active .pd-col.pd-right,
+.paperdoll-overlay.active .pd-bottom {
+  opacity: 1;
   pointer-events: all;
+}
+
+/* Unequip All only makes sense once the doll is open — the toggle stays
+   visible always, but its neighbor fades in alongside the equipment. */
+.pd-unequip-all {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.paperdoll-overlay.active .pd-unequip-all {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .pd-slot {
@@ -3875,15 +3908,24 @@
   box-shadow: inset 0 0 8px rgba(200, 168, 78, 0.1);
 }
 
-/* Paper Doll Actions */
+/* Paper Doll Actions — toggle + unequip live side by side here, always
+   inside the non-colliding center column (never the side equipment rows) */
 .pd-actions {
   pointer-events: all;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   padding-bottom: 10px;
   gap: 6px;
+}
+
+/* Neutralize the toggle's old standalone-corner-icon positioning now that
+   it's a normal flex item inside .pd-actions (2-class selector beats the
+   single-class .paperdoll-toggle rule regardless of source order). */
+.pd-actions .paperdoll-toggle {
+  position: static;
+  z-index: auto;
 }
 
 .pd-btn {
@@ -3900,11 +3942,20 @@
   transition: var(--velvet-transition);
 }
 
-.pd-btn:hover {
+/* Unequip All reads as a destructive action (red) */
+.pd-btn.pd-unequip-all:hover {
   color: #e74c3c;
   border-color: #e74c3c;
   background: rgba(231, 76, 60, 0.15);
   box-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+}
+
+/* The toggle is not destructive — it keeps the gold hover language */
+.pd-btn.paperdoll-toggle:hover {
+  color: var(--velvet-gold);
+  border-color: var(--velvet-gold);
+  background: rgba(200, 168, 78, 0.15);
+  box-shadow: 0 0 8px rgba(200, 168, 78, 0.3);
 }
 
 /* Picker dialog list */
@@ -5895,3 +5946,1120 @@
   border-radius: inherit;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE 1 — FOUNDATION LAYER
+   Accessibility · Reduced Motion · Rarity Language · Empty States ·
+   Container-Query Responsiveness
+   (Appended last so these rules win the cascade over all theme layers)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── P1.1 RARITY TOKENS — PF2e convention, tuned for the dark-gold theme ── */
+.velvet-sheet {
+  --velvet-rarity-common: rgba(200, 168, 78, 0.14);       /* matches --velvet-border */
+  --velvet-rarity-uncommon: #d28847;
+  --velvet-rarity-uncommon-glow: rgba(210, 136, 71, 0.35);
+  --velvet-rarity-rare: #5b8dd6;
+  --velvet-rarity-rare-glow: rgba(91, 141, 214, 0.35);
+  --velvet-rarity-unique: #a86bcf;
+  --velvet-rarity-unique-glow: rgba(168, 107, 207, 0.4);
+}
+
+/* Rarity ring + hover glow on inventory slots */
+.velvet-sheet .inv-slot[data-rarity="uncommon"] {
+  border-color: var(--velvet-rarity-uncommon);
+  box-shadow: inset 0 0 8px rgba(210, 136, 71, 0.12);
+}
+.velvet-sheet .inv-slot[data-rarity="uncommon"]:hover,
+.velvet-sheet .inv-slot--open[data-rarity="uncommon"] {
+  box-shadow: 0 0 10px var(--velvet-rarity-uncommon-glow), inset 0 0 8px var(--velvet-rarity-uncommon-glow);
+}
+.velvet-sheet .inv-slot[data-rarity="rare"] {
+  border-color: var(--velvet-rarity-rare);
+  box-shadow: inset 0 0 8px rgba(91, 141, 214, 0.12);
+}
+.velvet-sheet .inv-slot[data-rarity="rare"]:hover,
+.velvet-sheet .inv-slot--open[data-rarity="rare"] {
+  box-shadow: 0 0 10px var(--velvet-rarity-rare-glow), inset 0 0 8px var(--velvet-rarity-rare-glow);
+}
+.velvet-sheet .inv-slot[data-rarity="unique"] {
+  border-color: var(--velvet-rarity-unique);
+  box-shadow: inset 0 0 8px rgba(168, 107, 207, 0.14);
+}
+.velvet-sheet .inv-slot[data-rarity="unique"]:hover,
+.velvet-sheet .inv-slot--open[data-rarity="unique"] {
+  box-shadow: 0 0 12px var(--velvet-rarity-unique-glow), inset 0 0 8px var(--velvet-rarity-unique-glow);
+}
+/* Item name in the hover card echoes the rarity */
+.velvet-sheet .inv-slot[data-rarity="uncommon"] .inv-slot-name { color: var(--velvet-rarity-uncommon); }
+.velvet-sheet .inv-slot[data-rarity="rare"] .inv-slot-name { color: var(--velvet-rarity-rare); }
+.velvet-sheet .inv-slot[data-rarity="unique"] .inv-slot-name { color: var(--velvet-rarity-unique); }
+
+/* ── P1.2 EMPTY STATES — quiet, handcrafted, never a blank void ── */
+.velvet-sheet .velvet-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  margin: 4px 0 10px;
+  border: 1px dashed var(--velvet-border);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--velvet-text-dim);
+  font-family: var(--velvet-font-title);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-align: center;
+  opacity: 0.75;
+}
+.velvet-sheet .velvet-empty-state i {
+  font-size: 18px;
+  color: var(--velvet-gold-muted);
+  opacity: 0.6;
+}
+.velvet-sheet .velvet-empty-state small {
+  font-family: var(--velvet-font-body);
+  font-size: 11px;
+  font-style: italic;
+  letter-spacing: 0.2px;
+  color: var(--velvet-text-dim);
+  opacity: 0.8;
+  max-width: 320px;
+}
+/* In the "All" inventory view, empty categories collapse to a muted header
+   (the + button stays usable); the dashed hint only appears when that
+   category's filter is selected (.inv-filtered set by the filter handler). */
+.velvet-sheet .tab[data-tab="inventory"]:not(.inv-filtered) .inventory-category.is-empty .velvet-empty-state {
+  display: none;
+}
+.velvet-sheet .tab[data-tab="inventory"]:not(.inv-filtered) .inventory-category.is-empty .category-header {
+  opacity: 0.45;
+}
+
+.velvet-sheet .velvet-empty-state--tall {
+  padding: 44px 16px;
+  margin-top: 12px;
+}
+.velvet-sheet .velvet-empty-state--tall i {
+  font-size: 30px;
+}
+.velvet-sheet .velvet-empty-state span {
+  font-size: 13px;
+  color: var(--velvet-text);
+}
+
+/* ── P1.3 FOCUS VISIBILITY — keyboard users get the same gold language ── */
+.velvet-sheet :focus {
+  outline: none;
+}
+.velvet-sheet :focus-visible {
+  outline: 2px solid var(--velvet-gold);
+  outline-offset: 1px;
+  box-shadow: 0 0 10px rgba(200, 168, 78, 0.35);
+  border-radius: 2px;
+  z-index: 2;
+}
+.velvet-sheet input:focus-visible,
+.velvet-sheet select:focus-visible {
+  outline: 1px solid var(--velvet-gold);
+  outline-offset: 0;
+}
+/* Rows are large; keep their ring tight to the row shape */
+.velvet-sheet .skill-row:focus-visible,
+.velvet-sheet .save-row:focus-visible,
+.velvet-sheet .nav-item:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ── P1.4 REDUCED MOTION — CSS side of the guard (JS side lives in VA) ── */
+@media (prefers-reduced-motion: reduce) {
+  .velvet-sheet *,
+  .velvet-sheet *::before,
+  .velvet-sheet *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── P1.5 RESPONSIVE LAYOUT — container queries against the sheet window ──
+   The sheet lives in a resizable Foundry window, so viewport media queries
+   are meaningless; we query the sheet's own size instead. */
+.dnd-sheet {
+  container-type: size;
+  container-name: velvet-sheet;
+}
+
+/* Below ~860px: sidebar collapses to a 56px icon rail */
+@container velvet-sheet (max-width: 860px) {
+  .velvet-sidebar {
+    width: 56px;
+    min-width: 56px;
+    padding: 8px 4px;
+  }
+  .char-quick-info {
+    padding: 6px 2px 10px;
+  }
+  .char-name,
+  .char-class,
+  .char-race {
+    display: none;
+  }
+  .char-level {
+    font-size: 10px;
+  }
+  .char-level .level-input {
+    width: 30px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* !important required: the Dark Souls layer hard-codes nav padding with !important */
+    padding: 9px 0 !important;
+  }
+  .nav-item span {
+    display: none;
+  }
+  .nav-item i {
+    margin: 0;
+    font-size: 14px !important;
+    width: auto !important;
+  }
+  .velvet-branding {
+    flex-direction: column;
+    align-items: center;
+  }
+  .quick-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  .dnd-sheet .center {
+    flex: 0 0 240px;
+  }
+}
+
+/* Below ~700px: portrait column narrows further; panel keeps priority */
+@container velvet-sheet (max-width: 700px) {
+  .dnd-sheet .center {
+    flex: 0 0 170px;
+  }
+  .hero-points-badge {
+    transform: scale(0.85);
+    transform-origin: top right;
+  }
+  .attr-quick-row {
+    flex-wrap: wrap;
+  }
+  .inv-grid {
+    gap: 6px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE 2 — COMPONENT POLISH LAYER
+   Nav badges · Inventory hover meta · Interaction states · Type tokens
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── P2.1 TYPOGRAPHY TOKENS — single scale for future rules ── */
+.velvet-sheet {
+  --velvet-fs-2xs: 9px;
+  --velvet-fs-xs: 10px;
+  --velvet-fs-sm: 11px;
+  --velvet-fs-md: 13px;
+  --velvet-fs-lg: 16px;
+  --velvet-fs-xl: 20px;
+  --velvet-lh-tight: 1.2;
+  --velvet-lh-body: 1.45;
+}
+
+/* ── P2.2 NAV BADGE — effect count on the Effects tab ── */
+.velvet-sheet .nav-item {
+  position: relative;
+}
+.velvet-sheet .nav-badge {
+  margin-left: auto;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--velvet-font-title);
+  font-size: var(--velvet-fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--velvet-gold-bright);
+  background: rgba(200, 168, 78, 0.12);
+  border: 1px solid rgba(200, 168, 78, 0.35);
+  border-radius: 8px;
+  line-height: 1;
+  text-shadow: none;
+}
+/* Icon-rail mode: pin the badge to the corner so it survives label hiding */
+@container velvet-sheet (max-width: 860px) {
+  .velvet-sheet .nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    margin: 0;
+    transform: scale(0.85);
+  }
+}
+
+/* ── P2.3 INVENTORY HOVER META — level · price · bulk + traits ── */
+.velvet-sheet .inv-slot-meta {
+  font-family: var(--velvet-font-title);
+  font-size: var(--velvet-fs-2xs);
+  letter-spacing: 0.5px;
+  color: var(--velvet-bone);
+  text-align: center;
+  line-height: var(--velvet-lh-tight);
+  padding: 3px 0 1px;
+}
+.velvet-sheet .inv-slot-traits {
+  font-family: var(--velvet-font-body);
+  font-size: var(--velvet-fs-2xs);
+  font-style: italic;
+  color: var(--velvet-text-dim);
+  text-align: center;
+  line-height: var(--velvet-lh-tight);
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(200, 168, 78, 0.12);
+  margin-bottom: 2px;
+}
+
+/* ── P2.4 MAP LABELS — real modifiers need one more pixel of room ── */
+.velvet-sheet .map-label {
+  font-size: 8px;
+  right: 0;
+  bottom: -1px;
+  padding: 0 1px;
+  background: rgba(6, 5, 3, 0.85);
+  border-radius: 2px 0 0 0;
+}
+
+/* ── P2.5 INTERACTION STATES — pressed & disabled, everywhere ── */
+.velvet-sheet button:active:not(:disabled),
+.velvet-sheet .inv-filter:active,
+.velvet-sheet .feat-filter:active,
+.velvet-sheet .spell-filter:active {
+  transform: translateY(1px) scale(0.97);
+}
+.velvet-sheet [role="button"]:active {
+  filter: brightness(1.25);
+}
+.velvet-sheet button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: saturate(0.3);
+}
+.velvet-sheet select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE 3 — CINEMATIC IDENTITY & NAVIGATION LAYER
+   Level diamond emblem · Boost alert dot · Quick search
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── P3.1 LEVEL DIAMOND — sidebar hero emblem ── */
+.velvet-sheet .char-level-diamond {
+  width: 34px;
+  height: 34px;
+  margin: 4px auto 10px;
+  transform: rotate(45deg);
+  background:
+    linear-gradient(135deg, rgba(200,168,78,0.16) 0%, rgba(0,0,0,0.5) 60%),
+    var(--velvet-bg-dark);
+  border: 1px solid var(--velvet-border-strong);
+  outline: 1px solid rgba(200, 168, 78, 0.12);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 14px rgba(200, 168, 78, 0.18),
+    inset 0 0 8px rgba(200, 168, 78, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow var(--velvet-transition), border-color var(--velvet-transition);
+}
+.velvet-sheet .char-level-diamond:hover {
+  border-color: var(--velvet-border-glow);
+  box-shadow:
+    0 0 18px rgba(200, 168, 78, 0.35),
+    inset 0 0 10px rgba(200, 168, 78, 0.15);
+}
+.velvet-sheet .char-level-diamond .level-input {
+  transform: rotate(-45deg);
+  width: 30px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-align: center;
+  font-family: var(--velvet-font-title);
+  font-size: 14px !important;
+  font-weight: 800;
+  color: var(--velvet-gold-bright) !important;
+  text-shadow: 0 0 8px rgba(200, 168, 78, 0.5);
+  padding: 0 !important;
+  margin: 0 !important;
+  -moz-appearance: textfield;
+}
+.velvet-sheet .char-level-diamond .level-input::-webkit-outer-spin-button,
+.velvet-sheet .char-level-diamond .level-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Icon-rail mode: emblem shrinks but stays — it IS the identity marker */
+@container velvet-sheet (max-width: 860px) {
+  .velvet-sheet .char-level-diamond {
+    width: 26px;
+    height: 26px;
+    margin: 6px auto 8px;
+    outline-offset: 2px;
+  }
+  .velvet-sheet .char-level-diamond .level-input {
+    font-size: 11px !important;
+    width: 24px !important;
+  }
+}
+
+/* ── P3.2 BOOST ALERT DOT — unallocated attribute boosts ── */
+@keyframes velvet-alert-pulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(220, 140, 40, 0.6); opacity: 0.85; }
+  50%      { box-shadow: 0 0 10px rgba(220, 140, 40, 0.95); opacity: 1; }
+}
+.velvet-sheet .nav-alert {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f0b060, #c05820);
+  animation: velvet-alert-pulse 1.8s ease-in-out infinite;
+}
+@container velvet-sheet (max-width: 860px) {
+  .velvet-sheet .nav-alert {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    margin: 0;
+  }
+}
+
+/* ── P3.3 QUICK SEARCH — inventory / spells / feats ── */
+.velvet-sheet .velvet-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 8px;
+  padding: 5px 9px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(200,168,78,0.03) 100%);
+  border: 1px solid var(--velvet-border);
+  border-radius: 2px;
+  transition: border-color var(--velvet-transition), box-shadow var(--velvet-transition);
+}
+.velvet-sheet .velvet-search:focus-within {
+  border-color: var(--velvet-border-glow);
+  box-shadow: 0 0 10px rgba(200, 168, 78, 0.18), var(--velvet-inset-glow);
+}
+.velvet-sheet .velvet-search i {
+  font-size: 11px;
+  color: var(--velvet-gold-muted);
+  flex-shrink: 0;
+}
+.velvet-sheet .velvet-search-input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+  color: var(--velvet-text-bright);
+  font-family: var(--velvet-font-body);
+  font-size: var(--velvet-fs-md);
+  padding: 0;
+  height: 18px;
+}
+.velvet-sheet .velvet-search-input::placeholder {
+  color: var(--velvet-text-dim);
+  opacity: 0.55;
+  font-style: italic;
+}
+.velvet-sheet .velvet-search-input::-webkit-search-cancel-button {
+  cursor: pointer;
+  filter: sepia(1) saturate(3) hue-rotate(-15deg);
+}
+/* While searching, quiet the group headers so matches pop */
+.velvet-sheet .tab.velvet-searching .category-header,
+.velvet-sheet .tab.velvet-searching .spell-level-header,
+.velvet-sheet .tab.velvet-searching .feature-category h3 {
+  opacity: 0.45;
+}
+
+/* ── P3.4 CONTAINER BADGE — item lives inside a backpack/case ── */
+.velvet-sheet .inv-slot-contained {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  font-size: 8px;
+  color: var(--velvet-bone);
+  opacity: 0.7;
+  background: rgba(6, 5, 3, 0.85);
+  padding: 1px 3px;
+  border-radius: 0 2px 0 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VELVET ROYAL — AAA VISUAL OVERHAUL
+   Full re-skin layer: cinematic identity, ornate framing, rank colors,
+   metalwork buttons, layered depth. Appended last — wins the cascade.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── R0. TOKENS ───────────────────────────────────────────────────── */
+.velvet-sheet {
+  /* Proficiency rank colors (PF2e T/E/M/L, tuned for the dark-gold theme) */
+  --velvet-rank-0: #6f6a5e;
+  --velvet-rank-1: #5da0dd;
+  --velvet-rank-2: #a978e0;
+  --velvet-rank-3: #e08a30;
+  --velvet-rank-4: #f0c645;
+  --velvet-rank-1-glow: rgba(93, 160, 221, 0.35);
+  --velvet-rank-2-glow: rgba(169, 120, 224, 0.35);
+  --velvet-rank-3-glow: rgba(224, 138, 48, 0.35);
+  --velvet-rank-4-glow: rgba(240, 198, 69, 0.45);
+
+  /* Metalwork gradients */
+  --velvet-metal: linear-gradient(180deg, rgba(214,182,98,0.22) 0%, rgba(120,92,38,0.10) 45%, rgba(0,0,0,0.35) 55%, rgba(200,168,78,0.08) 100%);
+  --velvet-metal-hover: linear-gradient(180deg, rgba(230,198,110,0.32) 0%, rgba(140,108,44,0.16) 45%, rgba(0,0,0,0.30) 55%, rgba(214,182,98,0.14) 100%);
+  --velvet-plate: linear-gradient(160deg, rgba(255,245,215,0.05) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.45) 100%);
+
+  /* Ornament: gold filigree corner (inline SVG) */
+  --velvet-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M1 25 V9 Q1 1 9 1 H25' fill='none' stroke='%23c8a84e' stroke-width='1.5' opacity='0.7'/%3E%3Cpath d='M4 25 V10 Q4 4 10 4 H25' fill='none' stroke='%23c8a84e' stroke-width='0.7' opacity='0.35'/%3E%3Ccircle cx='7' cy='7' r='1.7' fill='%23e6c86e' opacity='0.9'/%3E%3C/svg%3E");
+}
+
+/* ── R1. GLOBAL DEPTH — the sheet reads as lit metal and stone ───── */
+.dnd-sheet .bg {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 108%, rgba(196, 110, 30, 0.13), transparent 62%),
+    radial-gradient(ellipse 70% 45% at 18% -8%, rgba(200, 168, 78, 0.05), transparent 60%),
+    radial-gradient(ellipse 70% 45% at 82% -8%, rgba(120, 60, 140, 0.04), transparent 60%),
+    radial-gradient(ellipse at 50% 0%, rgba(0, 0, 0, 0.85), transparent 70%),
+    var(--velvet-bg-void);
+}
+/* Inner vignette wraps the whole sheet in cathedral gloom */
+.dnd-sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  box-shadow:
+    inset 0 0 90px rgba(0, 0, 0, 0.55),
+    inset 0 0 18px rgba(0, 0, 0, 0.5);
+}
+
+/* ── R2. SIDEBAR — carved banner column ──────────────────────────── */
+.velvet-sidebar {
+  background:
+    linear-gradient(180deg, rgba(200,168,78,0.06) 0%, transparent 12%, transparent 84%, rgba(196,110,30,0.05) 100%),
+    linear-gradient(90deg, rgba(0,0,0,0.35) 0%, transparent 40%),
+    var(--velvet-bg-sidebar) !important;
+}
+.char-quick-info {
+  padding-top: 14px;
+}
+.char-name {
+  font-size: 14px;
+  background: linear-gradient(180deg, #f6e3ae 0%, #d9b25e 55%, #a87f2e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9)) drop-shadow(0 0 10px rgba(200,168,78,0.25));
+  text-shadow: none;
+}
+
+/* ── R3. NAV — royal tabs with ember-forged active state ─────────── */
+.nav-item {
+  margin: 1px 0;
+  border: 1px solid transparent !important;
+  border-left: 2px solid transparent !important;
+}
+.nav-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 235, 180, 0.10) 48%, rgba(255, 235, 180, 0.16) 50%, rgba(255, 235, 180, 0.10) 52%, transparent 70%);
+  transform: translateX(-110%);
+  transition: transform 0.55s ease;
+  pointer-events: none;
+}
+.nav-item:hover::after {
+  transform: translateX(110%);
+}
+.nav-item.active {
+  color: #f4e2b0 !important;
+  background:
+    linear-gradient(90deg, rgba(200, 168, 78, 0.16) 0%, rgba(200, 168, 78, 0.04) 60%, transparent 100%) !important;
+  border-color: rgba(200, 168, 78, 0.22) !important;
+  border-left: 2px solid var(--velvet-gold-bright) !important;
+  box-shadow:
+    inset 0 0 14px rgba(200, 168, 78, 0.10),
+    0 0 10px rgba(200, 168, 78, 0.10);
+  text-shadow: 0 0 10px rgba(240, 208, 96, 0.45), 0 1px 2px rgba(0,0,0,0.8) !important;
+}
+.nav-item.active i {
+  color: var(--velvet-gold-bright) !important;
+  filter: drop-shadow(0 0 6px rgba(240, 208, 96, 0.6));
+}
+
+/* ── R4. PORTRAIT — gilded frame + cinematic hero plate ──────────── */
+.dnd-sheet .center {
+  border-left: 1px solid rgba(200, 168, 78, 0.18);
+  border-right: 1px solid rgba(200, 168, 78, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 24px rgba(0, 0, 0, 0.55);
+}
+/* Gilded top edge on the portrait (corners are occupied by controls) */
+.portrait-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  z-index: 6;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 4%, rgba(220, 180, 90, 0.55) 30%, rgba(220, 180, 90, 0.75) 50%, rgba(220, 180, 90, 0.55) 70%, transparent 96%);
+  box-shadow: 0 1px 8px rgba(220, 180, 90, 0.25);
+}
+/* Filigree corners live on the content panel where nothing collides */
+.velvet-panel::before,
+.velvet-panel::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  width: 26px;
+  height: 26px;
+  background: var(--velvet-corner) no-repeat center / contain;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.velvet-panel::before { left: 5px; }
+.velvet-panel::after  { right: 5px; transform: scaleX(-1); }
+.velvet-panel { position: relative; }
+
+/* Hero plate steps aside while the paper doll is open */
+.portrait-wrap:has(.paperdoll-overlay.active) .hero-plate {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.paperdoll-overlay.active {
+  z-index: 7;
+}
+
+.hero-plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  padding: 26px 12px 12px;
+  text-align: center;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(4, 3, 2, 0.92) 0%, rgba(4, 3, 2, 0.55) 55%, transparent 100%);
+}
+.hero-plate-ornament {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--velvet-gold);
+  opacity: 0.75;
+  margin-bottom: 3px;
+  text-shadow: 0 0 8px rgba(200, 168, 78, 0.5);
+}
+.hero-plate-name {
+  font-family: var(--velvet-font-display);
+  font-weight: 700;
+  font-size: clamp(15px, 7cqw, 22px);
+  line-height: 1.15;
+  background: linear-gradient(180deg, #fff3d0 0%, #ecd28a 45%, #c89b3c 80%, #8a6a24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter:
+    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 0 16px rgba(220, 180, 90, 0.30));
+}
+.hero-plate-sub {
+  margin-top: 2px;
+  font-family: var(--velvet-font-title);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--velvet-bone);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  opacity: 0.92;
+}
+.hero-plate-level {
+  color: var(--velvet-gold-bright);
+}
+/* The sidebar hero block is now secondary — the portrait carries identity */
+@container velvet-sheet (max-width: 860px) {
+  .hero-plate-name { font-size: 14px; }
+  .hero-plate-sub  { font-size: 8px; letter-spacing: 1px; }
+  .hero-plate-ornament { display: none; }
+}
+
+/* ── R5. QUICK STAT PLATES — forged badges with hover lift ───────── */
+.attr-quick-box {
+  background: var(--velvet-metal) !important;
+  border: 1px solid rgba(200, 168, 78, 0.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 200, 0.10),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.35),
+    0 3px 8px rgba(0, 0, 0, 0.55) !important;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease !important;
+}
+.attr-quick-box:hover {
+  transform: translateY(-2px);
+  border-color: rgba(230, 200, 110, 0.55) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 200, 0.14),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.3),
+    0 6px 14px rgba(0, 0, 0, 0.6),
+    0 0 14px rgba(200, 168, 78, 0.25) !important;
+}
+.attr-quick-val {
+  font-family: var(--velvet-font-title);
+  font-weight: 800 !important;
+  background: linear-gradient(180deg, #f8ecc8 0%, #e2c477 60%, #b08a36 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.9));
+  text-shadow: none !important;
+}
+.attr-quick-lbl {
+  letter-spacing: 1.4px !important;
+  color: var(--velvet-text-dim) !important;
+}
+
+/* ── R6. ABILITY MEDALLIONS ───────────────────────────────────────── */
+.main-stats .stat {
+  background: var(--velvet-plate) !important;
+  border: 1px solid rgba(200, 168, 78, 0.26) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 200, 0.08),
+    inset 0 0 14px rgba(0, 0, 0, 0.5),
+    0 3px 8px rgba(0, 0, 0, 0.5) !important;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease !important;
+  position: relative;
+}
+.main-stats .stat::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid rgba(200, 168, 78, 0.10);
+  pointer-events: none;
+}
+.main-stats .stat:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(230, 200, 110, 0.6) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 200, 0.12),
+    inset 0 0 14px rgba(0, 0, 0, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.65),
+    0 0 16px rgba(200, 168, 78, 0.30) !important;
+}
+.main-stats .stat-mod {
+  font-weight: 800 !important;
+  background: linear-gradient(180deg, #f8ecc8 0%, #e2c477 55%, #ad8834 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.9)) drop-shadow(0 0 8px rgba(200,168,78,0.25));
+  text-shadow: none !important;
+}
+.key-ability-tag {
+  color: var(--velvet-rank-4) !important;
+  filter: drop-shadow(0 0 6px var(--velvet-rank-4-glow));
+}
+
+/* ── R7. HP & XP — jeweled reliquary bars ─────────────────────────── */
+.hp-bar {
+  border: 1px solid rgba(200, 168, 78, 0.40) !important;
+  outline: 1px solid rgba(0, 0, 0, 0.75);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.75),
+    inset 0 0 18px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 12px rgba(140, 30, 30, 0.18) !important;
+}
+.hp-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 38%),
+    linear-gradient(90deg, #5f1414 0%, #8e1f1f 45%, #b93030 85%, #d64545 100%) !important;
+  box-shadow:
+    inset 0 0 8px rgba(255, 120, 100, 0.35),
+    0 0 12px rgba(190, 50, 40, 0.45) !important;
+}
+.hp-text, .hp-text span {
+  font-family: var(--velvet-font-title);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.6) !important;
+}
+.xp-bar {
+  border: 1px solid rgba(200, 168, 78, 0.25) !important;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7) !important;
+}
+.xp-fill {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 40%),
+    linear-gradient(90deg, #7a5c1c 0%, #c89b3c 70%, #ecd28a 100%) !important;
+  box-shadow: 0 0 10px rgba(200, 168, 78, 0.4) !important;
+}
+
+/* ── R8. PROFICIENCY RANK COLORS — information becomes light ─────── */
+.velvet-sheet .rank-0 { color: var(--velvet-rank-0) !important; }
+.velvet-sheet .rank-1 { color: var(--velvet-rank-1) !important; }
+.velvet-sheet .rank-2 { color: var(--velvet-rank-2) !important; }
+.velvet-sheet .rank-3 { color: var(--velvet-rank-3) !important; }
+.velvet-sheet .rank-4 { color: var(--velvet-rank-4) !important; }
+.velvet-sheet .save-rank.rank-1 i, .velvet-sheet .skill-prof.rank-1 i, .velvet-sheet .class-dc-rank.rank-1 i { filter: drop-shadow(0 0 5px var(--velvet-rank-1-glow)); }
+.velvet-sheet .save-rank.rank-2 i, .velvet-sheet .skill-prof.rank-2 i, .velvet-sheet .class-dc-rank.rank-2 i { filter: drop-shadow(0 0 5px var(--velvet-rank-2-glow)); }
+.velvet-sheet .save-rank.rank-3 i, .velvet-sheet .skill-prof.rank-3 i, .velvet-sheet .class-dc-rank.rank-3 i { filter: drop-shadow(0 0 6px var(--velvet-rank-3-glow)); }
+.velvet-sheet .save-rank.rank-4 i, .velvet-sheet .skill-prof.rank-4 i, .velvet-sheet .class-dc-rank.rank-4 i { filter: drop-shadow(0 0 8px var(--velvet-rank-4-glow)); }
+.velvet-sheet select.skill-rank-select { border-color: currentColor !important; }
+
+/* ── R9. HEADERS — engraved gold with flanking rules ───────────────
+   Both earlier layers fight here (base absolute underline, DS 9px micro
+   caps with !important) — this block takes full ownership. */
+.velvet-panel h2 {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--velvet-font-display) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 3px !important;
+  text-transform: uppercase;
+  color: var(--velvet-gold-bright) !important;
+  margin: 2px 0 14px !important;
+  padding-bottom: 0 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 18px rgba(220, 180, 90, 0.35) !important;
+}
+.velvet-panel h2::before,
+.velvet-panel h2::after {
+  content: '' !important;
+  position: static !important;
+  flex: 1 1 0;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(200, 168, 78, 0.5), rgba(200, 168, 78, 0.12)) !important;
+}
+.velvet-panel h2::before {
+  background: linear-gradient(90deg, rgba(200, 168, 78, 0.12), rgba(200, 168, 78, 0.5), transparent) !important;
+}
+.velvet-panel h2 .item-create {
+  flex: 0 0 auto;
+}
+.velvet-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px !important;
+  letter-spacing: 2.5px !important;
+  color: var(--velvet-text-accent) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 0 10px rgba(200, 168, 78, 0.25) !important;
+}
+.velvet-panel h3::after {
+  content: '';
+  position: static !important;
+  flex: 1 1 0;
+  height: 1px !important;
+  background: linear-gradient(90deg, rgba(200, 168, 78, 0.38), transparent 85%) !important;
+}
+.velvet-panel h3 .item-create {
+  flex: 0 0 auto;
+}
+
+/* ── R10. ROWS — saves & skills glide on hover ────────────────────── */
+.save-row, .skill-row {
+  border: 1px solid transparent !important;
+  border-left: 2px solid transparent !important;
+  transition: background 0.15s ease, border-color 0.15s ease, padding-left 0.15s ease !important;
+}
+.save-row:hover, .skill-row:hover {
+  background: linear-gradient(90deg, rgba(200, 168, 78, 0.10) 0%, rgba(200, 168, 78, 0.02) 70%, transparent 100%) !important;
+  border-left-color: var(--velvet-gold) !important;
+  padding-left: 10px !important;
+}
+.save-value, .skill-total {
+  font-family: var(--velvet-font-title);
+  font-weight: 800 !important;
+  color: var(--velvet-text-bright) !important;
+}
+.save-row:hover .save-value, .skill-row:hover .skill-total {
+  color: var(--velvet-gold-bright) !important;
+  text-shadow: 0 0 10px rgba(240, 208, 96, 0.45);
+}
+
+/* ── R11. FILTER PILLS — struck coins ─────────────────────────────── */
+.inv-filter, .feat-filter, .spell-filter {
+  background: var(--velvet-metal) !important;
+  border: 1px solid rgba(200, 168, 78, 0.25) !important;
+  color: var(--velvet-text-dim) !important;
+  transition: all 0.15s ease !important;
+}
+.inv-filter:hover, .feat-filter:hover, .spell-filter:hover {
+  background: var(--velvet-metal-hover) !important;
+  color: var(--velvet-text-bright) !important;
+  border-color: rgba(230, 200, 110, 0.5) !important;
+}
+.inv-filter.active, .feat-filter.active, .spell-filter.active {
+  background: linear-gradient(180deg, #e8cd85 0%, #c89b3c 55%, #9a742a 100%) !important;
+  color: #17110a !important;
+  border-color: #f0d896 !important;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 245, 215, 0.4) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 250, 230, 0.5),
+    0 0 12px rgba(200, 168, 78, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+.inv-filter.active i, .feat-filter.active i, .spell-filter.active i {
+  color: #17110a !important;
+}
+
+/* ── R12. STRIKES — weapon cards with forged roll buttons ─────────── */
+.strike-entry {
+  background:
+    linear-gradient(90deg, rgba(200, 168, 78, 0.06) 0%, transparent 30%),
+    var(--velvet-plate) !important;
+  border: 1px solid rgba(200, 168, 78, 0.22) !important;
+  border-left: 3px solid rgba(196, 110, 30, 0.55) !important;
+  box-shadow: inset 0 1px 0 rgba(255,240,200,0.06), 0 3px 8px rgba(0,0,0,0.45) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+.strike-entry:hover {
+  border-color: rgba(230, 200, 110, 0.45) !important;
+  border-left-color: var(--velvet-ember) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,240,200,0.08),
+    0 4px 12px rgba(0,0,0,0.55),
+    0 0 14px rgba(196, 110, 30, 0.20) !important;
+}
+.strike-img {
+  border: 1px solid rgba(200, 168, 78, 0.4) !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6), inset 0 0 6px rgba(0,0,0,0.4);
+}
+.strike-entry:hover .strike-img {
+  border-color: var(--velvet-gold-bright) !important;
+  box-shadow: 0 0 10px rgba(200, 168, 78, 0.4);
+}
+.strike-name {
+  font-family: var(--velvet-font-title);
+  color: var(--velvet-text-bright) !important;
+}
+.strike-mod {
+  font-weight: 800 !important;
+  color: var(--velvet-gold-bright) !important;
+  text-shadow: 0 0 8px rgba(240, 208, 96, 0.35);
+}
+.strike-controls button {
+  background: var(--velvet-metal) !important;
+  border: 1px solid rgba(200, 168, 78, 0.35) !important;
+  position: relative;
+  overflow: hidden;
+}
+.strike-controls button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 240, 190, 0.22) 50%, transparent 65%);
+  transform: translateX(-120%);
+  transition: transform 0.45s ease;
+  pointer-events: none;
+}
+.strike-controls button:hover::after {
+  transform: translateX(120%);
+}
+.strike-controls button:hover {
+  background: var(--velvet-metal-hover) !important;
+  border-color: #e8cd85 !important;
+  color: var(--velvet-gold-bright) !important;
+  box-shadow: 0 0 10px rgba(200, 168, 78, 0.35) !important;
+}
+.strike-damage:hover { border-color: #d08a50 !important; box-shadow: 0 0 10px rgba(196,110,30,0.4) !important; }
+.strike-critical:hover { border-color: #c04040 !important; box-shadow: 0 0 12px rgba(180,40,40,0.5) !important; }
+
+/* ── R13. INVENTORY TILES — jeweled sockets ───────────────────────── */
+.inv-slot {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(200, 168, 78, 0.05), transparent 70%),
+    linear-gradient(160deg, rgba(255,245,215,0.04) 0%, rgba(0,0,0,0.4) 100%) !important;
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 240, 200, 0.06) !important;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease !important;
+}
+.inv-slot:hover {
+  transform: translateY(-2px) scale(1.05);
+  z-index: 5;
+  border-color: rgba(230, 200, 110, 0.6) !important;
+  box-shadow:
+    inset 0 0 8px rgba(0, 0, 0, 0.4),
+    0 5px 12px rgba(0, 0, 0, 0.6),
+    0 0 14px rgba(200, 168, 78, 0.30) !important;
+}
+.inv-slot-img {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+  transition: filter 0.14s ease;
+}
+.inv-slot:hover .inv-slot-img {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) brightness(1.12);
+}
+.inv-slot-qty {
+  font-family: var(--velvet-font-title);
+  background: rgba(4, 3, 2, 0.9) !important;
+  border: 1px solid rgba(200, 168, 78, 0.4) !important;
+  color: var(--velvet-gold-bright) !important;
+  border-radius: 2px;
+  padding: 0 3px;
+}
+.inv-slot-hover {
+  border: 1px solid rgba(220, 188, 100, 0.55) !important;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.75),
+    0 0 16px rgba(200, 168, 78, 0.18),
+    inset 0 1px 0 rgba(255, 240, 200, 0.08) !important;
+}
+
+/* ── R14. SPELLS — tradition-lit entries ──────────────────────────── */
+.spellcasting-entry {
+  border: 1px solid rgba(200, 168, 78, 0.16);
+  border-radius: 3px;
+  padding: 8px 10px 10px;
+  margin-bottom: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 30%);
+  position: relative;
+}
+.spellcasting-entry::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--velvet-gold), transparent 80%);
+  opacity: 0.55;
+}
+.spellcasting-entry[data-tradition="arcane"]::before { background: linear-gradient(90deg, #9a5fe0, transparent 80%); }
+.spellcasting-entry[data-tradition="divine"]::before { background: linear-gradient(90deg, #e0b23c, transparent 80%); }
+.spellcasting-entry[data-tradition="primal"]::before { background: linear-gradient(90deg, #4faf62, transparent 80%); }
+.spellcasting-entry[data-tradition="occult"]::before { background: linear-gradient(90deg, #c05c9a, transparent 80%); }
+.spellcasting-entry[data-tradition="arcane"] .spell-tradition { color: #b58aec; }
+.spellcasting-entry[data-tradition="divine"] .spell-tradition { color: #ecca72; }
+.spellcasting-entry[data-tradition="primal"] .spell-tradition { color: #78cc8c; }
+.spellcasting-entry[data-tradition="occult"] .spell-tradition { color: #d98cc0; }
+.spell-stat {
+  background: var(--velvet-metal);
+  border: 1px solid rgba(200, 168, 78, 0.25);
+  border-radius: 2px;
+  padding: 3px 8px;
+}
+.spell-stat-value {
+  font-family: var(--velvet-font-title);
+  font-weight: 800;
+  color: var(--velvet-text-bright) !important;
+}
+.slot-pip.filled i, .focus-pip.filled i {
+  filter: drop-shadow(0 0 6px rgba(196, 110, 30, 0.7));
+}
+
+/* ── R15. COINS — each metal glows true ───────────────────────────── */
+.coin { border: 1px solid rgba(200,168,78,0.2) !important; background: var(--velvet-plate) !important; }
+.coin-pp i { color: #dfe6f2 !important; filter: drop-shadow(0 0 5px rgba(200,215,240,0.5)); }
+.coin-gp i { color: #f0c645 !important; filter: drop-shadow(0 0 5px rgba(240,198,69,0.55)); }
+.coin-sp i { color: #b8bcc4 !important; filter: drop-shadow(0 0 4px rgba(180,185,195,0.45)); }
+.coin-cp i { color: #c87f4a !important; filter: drop-shadow(0 0 4px rgba(200,127,74,0.5)); }
+.coin-label { font-family: var(--velvet-font-title); letter-spacing: 1px; }
+
+/* ── R16. TRAIT TAGS — wax-sealed chips ───────────────────────────── */
+.trait-tag {
+  background: var(--velvet-metal) !important;
+  border: 1px solid rgba(200, 168, 78, 0.28) !important;
+  border-radius: 2px !important;
+  font-family: var(--velvet-font-title);
+  letter-spacing: 0.8px;
+  transition: all 0.14s ease;
+}
+.trait-tag:hover {
+  border-color: rgba(230, 200, 110, 0.55) !important;
+  color: var(--velvet-text-bright) !important;
+  box-shadow: 0 0 8px rgba(200, 168, 78, 0.2);
+}
+
+/* ── R17. CONDITION TRACKERS — omens of fate ──────────────────────── */
+.dying-tracker { border-color: rgba(190, 40, 40, 0.4) !important; }
+.dying-tracker .condition-pip.filled i { color: #e04040 !important; filter: drop-shadow(0 0 7px rgba(220,50,50,0.8)); }
+.wounded-tracker .condition-pip.filled i { color: #d0703a !important; filter: drop-shadow(0 0 6px rgba(208,112,58,0.7)); }
+.doomed-tracker .condition-pip.filled i { color: #9a5fe0 !important; filter: drop-shadow(0 0 6px rgba(154,95,224,0.7)); }
+.condition-label { font-family: var(--velvet-font-title); letter-spacing: 1.2px; }
+
+/* ── R18. EFFECTS — living seals ──────────────────────────────────── */
+.effect-entry {
+  background: var(--velvet-plate);
+  border: 1px solid rgba(200, 168, 78, 0.18) !important;
+  border-left: 2px solid rgba(200, 168, 78, 0.45) !important;
+  border-radius: 2px;
+  transition: all 0.15s ease !important;
+}
+.effect-entry:hover {
+  border-color: rgba(230, 200, 110, 0.5) !important;
+  box-shadow: 0 0 12px rgba(200, 168, 78, 0.15), 0 3px 8px rgba(0,0,0,0.5);
+}
+.effect-img {
+  border: 1px solid rgba(200, 168, 78, 0.35) !important;
+  box-shadow: 0 0 6px rgba(0,0,0,0.6);
+}
+.effect-badge {
+  font-family: var(--velvet-font-title);
+  background: rgba(200, 168, 78, 0.15) !important;
+  border: 1px solid rgba(200, 168, 78, 0.4) !important;
+  color: var(--velvet-gold-bright) !important;
+  border-radius: 8px;
+  padding: 0 5px;
+}
+
+/* ── R19. FEATURE / ACTION ENTRIES — parchment ledger rows ────────── */
+.feature-entry, .spell-entry, .exploration-entry {
+  border-radius: 2px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease !important;
+}
+.feature-entry:hover, .spell-entry:hover {
+  transform: translateX(2px);
+}
+.feature-name, .spell-name {
+  font-family: var(--velvet-font-title);
+}
+.feature-entry:hover .feature-name,
+.spell-entry:hover .spell-name {
+  color: var(--velvet-gold-bright) !important;
+  text-shadow: 0 0 8px rgba(240, 208, 96, 0.3);
+}
+.exploration-entry.active {
+  background: linear-gradient(90deg, rgba(90, 138, 58, 0.18) 0%, transparent 80%) !important;
+  border-left: 2px solid #6aa842 !important;
+}
+.exploration-active-badge i {
+  color: #8ac05e !important;
+  filter: drop-shadow(0 0 5px rgba(120, 190, 80, 0.6));
+}
+
+/* ── R20. PANEL — cathedral column framing ────────────────────────── */
+.velvet-panel {
+  box-shadow:
+    inset 1px 0 0 rgba(200, 168, 78, 0.08),
+    inset 0 0 40px rgba(0, 0, 0, 0.35) !important;
+}

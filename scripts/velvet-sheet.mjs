@@ -116,6 +116,15 @@ class VelvetCharacterSheet extends ActorSheet {
     };
     context.perceptionStr = ((context.perception.mod >= 0) ? "+" : "") + context.perception.mod;
 
+    // Initiative — PF2e defaults to Perception but feats can swap the statistic
+    const initStatistic = actor.initiative?.statistic ?? actor.perception;
+    const initMod = initStatistic?.check?.mod ?? initStatistic?.mod ?? context.perception.mod;
+    context.initiative = {
+      mod: initMod,
+      modStr: (initMod >= 0 ? "+" : "") + initMod,
+      label: initStatistic?.label ?? "Perception"
+    };
+
     // Level
     context.level = system.details?.level?.value ?? 0;
 
@@ -191,6 +200,7 @@ class VelvetCharacterSheet extends ActorSheet {
 
     // Effects / Conditions
     context.effects = this._prepareEffects(actor);
+    context.effectsCount = context.effects.filter(e => !e.isExpired).length;
 
     // Currency (PF2e uses coins object on inventory)
     const coins = actor.inventory?.coins ?? {};
@@ -522,9 +532,21 @@ class VelvetCharacterSheet extends ActorSheet {
 
     for (const item of actor.items) {
       if (!["weapon", "armor", "shield", "equipment", "consumable", "ammo", "treasure", "book", "backpack"].includes(item.type)) continue;
+      const identified = item.system.identification?.status !== "unidentified";
+      // Match PF2e mystification: players see a concealed name, GMs see everything
+      const conceal = !identified && !game.user.isGM;
+      // Human-readable price from the full coin object (not just gp)
+      const priceVal = item.system.price?.value ?? {};
+      const priceStr = ["pp", "gp", "sp", "cp"]
+        .filter(d => priceVal[d])
+        .map(d => `${priceVal[d]} ${d}`)
+        .join(" ");
+      const level = item.system.level?.value ?? 0;
+      const bulk = item.system.bulk?.value ?? 0;
+      const bulkStr = bulk >= 1 ? `${bulk} Bulk` : (bulk > 0 ? "L Bulk" : "");
       const ctx = {
         id: item.id,
-        name: item.name,
+        name: conceal ? (item.system.identification?.unidentified?.name || "Unidentified Item") : item.name,
         img: item.img,
         type: item.type,
         quantity: item.system.quantity ?? 1,
@@ -532,10 +554,16 @@ class VelvetCharacterSheet extends ActorSheet {
         equipped: item.isEquipped ?? item.system.equipped?.carryType === "worn" ?? false,
         invested: item.isInvested ?? false,
         isInvestable: item.isInvested !== null && item.isInvested !== undefined,
-        identified: item.system.identification?.status !== "unidentified",
-        rarity: item.system.traits?.rarity ?? "common",
+        identified,
+        rarity: conceal ? "common" : (item.system.traits?.rarity ?? "common"),
         uses: item.system.uses ?? null,
         price: item.system.price?.value?.gp ?? 0,
+        // Tooltip meta shown in the hover card: "Lvl 3 · 12 gp · L Bulk"
+        meta: conceal
+          ? ""
+          : [level ? `Lvl ${level}` : null, priceStr || null, bulkStr || null].filter(Boolean).join(" · "),
+        traits: conceal ? "" : (item.system.traits?.value ?? []).slice(0, 4).join(", "),
+        inContainer: !!item.system.containerId,
         hasSound: _velvetItemHasSound(actor, item) || !!(item.getFlag("pf2e-velvet-sheet", "soundTrack"))
       };
 
@@ -931,6 +959,12 @@ class VelvetCharacterSheet extends ActorSheet {
 
   _prepareStrikes(actor) {
     const strikes = actor.system.actions ?? [];
+    // Extract the signed modifier ("+10", "-2") from a strike variant label,
+    // so MAP buttons can show real values (respects agile −4/−8 weapons).
+    const variantMod = v => {
+      const m = typeof v?.label === "string" ? v.label.match(/[+-]\d+/) : null;
+      return m ? m[0] : "";
+    };
     return strikes.map((s, idx) => {
       // Ammunition data
       const ammo = s.ammunition ?? null;
@@ -952,6 +986,8 @@ class VelvetCharacterSheet extends ActorSheet {
         img: s.item?.img ?? "icons/svg/sword.svg",
         totalModifier: s.totalModifier ?? 0,
         modStr: ((s.totalModifier ?? 0) >= 0 ? "+" : "") + (s.totalModifier ?? 0),
+        map2: variantMod(s.variants?.[1]),
+        map3: variantMod(s.variants?.[2]),
         traits: (s.weaponTraits ?? s.traits ?? []).map(t => t.label ?? t.name ?? t).join(", "),
         ready: s.ready ?? true,
         slug: s.slug ?? "",
@@ -1129,11 +1165,68 @@ class VelvetCharacterSheet extends ActorSheet {
       html.find(`.velvet-panel > .tab[data-tab="${this._activeTab}"]`).addClass("active");
     }
 
+    // ── Keyboard accessibility ──
+    // Interactive rows/pips are divs and spans; make them tabbable and let
+    // Enter/Space activate them like a click. Applied here (not in the template)
+    // so every conditionally rendered element is covered.
+    html.find([
+      ".nav-item", ".stat", ".save-row", ".skill-row", ".class-dc-row",
+      ".perception-roll", ".initiative-roll", ".attr-quick-box[title]",
+      ".hero-pip", ".focus-pip", ".slot-pip", ".condition-pip",
+      ".exploration-entry", ".inv-slot", ".pd-slot", ".prep-slot:not(.empty)",
+      ".item-use", ".item-roll", ".item-edit", ".item-delete",
+      ".spell-use", ".item-invest", ".item-sound-config", ".effect-toggle",
+      ".effect-delete", ".item-create", ".paperdoll-toggle"
+    ].join(", ")).attr({ tabindex: 0, role: "button" });
+
+    html[0].addEventListener("keydown", ev => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      const target = ev.target;
+      if (target.matches("input, select, textarea, button, a, [contenteditable='true']")) return;
+      if (target.getAttribute("role") === "button") {
+        ev.preventDefault();
+        target.click();
+      }
+    });
+
+    // ── Quick search (Inventory / Spells / Feats) ──
+    // Client-side name filter; queries persist across data re-renders.
+    this._searchQueries ??= {};
+    const applySearch = (scope, rawQuery) => {
+      const q = (rawQuery ?? "").trim().toLowerCase();
+      this._searchQueries[scope] = q;
+      const tab = html.find(`.velvet-panel > .tab[data-tab="${scope}"]`);
+      const rowSelector = {
+        inventory: ".inv-slot",
+        spells: ".spell-entry, .prep-slot:not(.empty)",
+        feats: ".feature-entry"
+      }[scope];
+      if (!tab.length || !rowSelector) return;
+      tab.find(rowSelector).each((_, el) => {
+        const name = (
+          el.querySelector(".inv-slot-name, .spell-name, .feature-name, .prep-slot-name")?.textContent
+          ?? el.getAttribute("title") ?? ""
+        ).toLowerCase();
+        el.style.display = !q || name.includes(q) ? "" : "none";
+      });
+      tab.toggleClass("velvet-searching", !!q);
+    };
+    html.find(".velvet-search-input").on("input", ev => {
+      applySearch(ev.currentTarget.dataset.scope, ev.currentTarget.value);
+    });
+    // Re-apply persisted queries after a re-render
+    for (const [scope, q] of Object.entries(this._searchQueries)) {
+      if (!q) continue;
+      html.find(`.velvet-search-input[data-scope="${scope}"]`).val(q);
+      applySearch(scope, q);
+    }
+
     // Inventory category filter
     html.find(".inv-filter").click(ev => {
       const filter = ev.currentTarget.dataset.filter;
       html.find(".inv-filter").removeClass("active");
       $(ev.currentTarget).addClass("active");
+      html.find(`.tab[data-tab="inventory"]`).toggleClass("inv-filtered", filter !== "all");
       if (filter === "all") {
         html.find(".inventory-category").show();
       } else {
@@ -1145,6 +1238,7 @@ class VelvetCharacterSheet extends ActorSheet {
     if (this._activeInvFilter && this._activeInvFilter !== "all") {
       html.find(".inv-filter").removeClass("active");
       html.find(`.inv-filter[data-filter="${this._activeInvFilter}"]`).addClass("active");
+      html.find(`.tab[data-tab="inventory"]`).addClass("inv-filtered");
       html.find(".inventory-category").hide();
       html.find(`.inventory-category[data-category="${this._activeInvFilter}"]`).show();
     }
@@ -1658,6 +1752,29 @@ class VelvetCharacterSheet extends ActorSheet {
 
       prepared[slotIndex] = { id: spellId, expended: false };
       entry.update({ [`system.slots.${slotKey}.prepared`]: prepared });
+    });
+
+    // Currency editing — PF2e coins are treasure items, so edits must go through
+    // the inventory coin API (addCoins/removeCoins) rather than actor data paths.
+    html.find(".coin-input").change(async ev => {
+      const denomination = ev.currentTarget.dataset.denomination;
+      if (!denomination) return;
+      const newValue = Math.max(0, parseInt(ev.currentTarget.value) || 0);
+      const current = this.actor.inventory?.coins?.[denomination] ?? 0;
+      const delta = newValue - current;
+      if (delta === 0) return;
+      const inventory = this.actor.inventory;
+      if (delta > 0 && typeof inventory?.addCoins === "function") {
+        await inventory.addCoins({ [denomination]: delta });
+      } else if (delta < 0 && typeof inventory?.removeCoins === "function") {
+        const removed = await inventory.removeCoins({ [denomination]: -delta });
+        if (!removed) {
+          ui.notifications.warn(`Not enough loose ${denomination.toUpperCase()} to remove.`);
+          this.render(false);
+        }
+      } else {
+        ev.currentTarget.value = current;
+      }
     });
 
     // HP editing

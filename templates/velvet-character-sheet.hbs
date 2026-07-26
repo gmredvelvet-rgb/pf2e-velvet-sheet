@@ -6,17 +6,18 @@
     <!-- LEFT SIDEBAR -->
     <div class="velvet-sidebar">
       <div class="char-quick-info">
+        <div class="char-level-diamond" title="Level (editable)">
+          <input type="number" class="level-input" value="{{level}}" min="0" max="30" aria-label="Character level">
+        </div>
         <div class="char-name">{{actor.name}}</div>
         <div class="char-class">{{className}}</div>
         <div class="char-race">{{ancestryName}} {{heritageName}}</div>
-        <div class="char-level">
-          Level <input type="number" class="level-input" name="system.details.level.value" value="{{level}}" min="0" max="30">
-        </div>
       </div>
 
       <nav class="nav-list">
         <div class="nav-item active" data-tab="attributes">
           <i class="fas fa-chess-rook"></i><span>Attributes</span>
+          {{#unless attributeBoostsAllocated}}<span class="nav-alert" title="Unallocated attribute boosts"></span>{{/unless}}
         </div>
         <div class="nav-item" data-tab="skills">
           <i class="fas fa-eye"></i><span>Skills</span>
@@ -38,6 +39,7 @@
         </div>
         <div class="nav-item" data-tab="effects">
           <i class="fas fa-skull"></i><span>Effects</span>
+          {{#if effectsCount}}<span class="nav-badge" title="Active effects & conditions">{{effectsCount}}</span>{{/if}}
         </div>
       </nav>
 
@@ -63,8 +65,15 @@
         {{/if}}
         <div class="portrait-vignette"></div>
 
+        <!-- Cinematic hero identity plate -->
+        <div class="hero-plate">
+          <div class="hero-plate-ornament">✦ ─── ✦ ─── ✦</div>
+          <div class="hero-plate-name">{{actor.name}}</div>
+          <div class="hero-plate-sub">{{ancestryName}} {{className}} <span class="hero-plate-level">· Level {{level}}</span></div>
+        </div>
+
         <!-- Heartbeat Blood Overlay (persistent, based on HP%) -->
-        <img class="velvet-blood-overlay" src="modules/dnd-velvet-sheets/images/bloody.webp">
+        <img class="velvet-blood-overlay" src="modules/pf2e-velvet-sheet/images/bloody.webp">
         <!-- Heartbeat Damage Flash (red/green radial on HP change) -->
         <div class="velvet-damage-flash"></div>
         <!-- Heartbeat Blood Splatters Container -->
@@ -75,11 +84,6 @@
           {{#each heroPoints.pips}}
           <span class="hero-pip {{#if this.filled}}filled{{/if}}" title="Hero Point"><i class="fas fa-star"></i></span>
           {{/each}}
-        </div>
-
-        <!-- Paper Doll Toggle Button -->
-        <div class="paperdoll-toggle" title="Toggle Paper Doll">
-          <i class="fas fa-tshirt"></i>
         </div>
 
         <!-- Paper Doll Overlay -->
@@ -97,7 +101,11 @@
               {{/each}}
             </div>
             <div class="pd-col pd-center-spacer">
+              <!-- Action cluster: always visible/interactive even while
+                   the doll is closed, so the toggle can never get covered
+                   by the equipment slots (see PAPER DOLL FIX in the CSS). -->
               <div class="pd-actions">
+                <button class="pd-btn paperdoll-toggle" title="Toggle Paper Doll"><i class="fas fa-tshirt"></i></button>
                 <button class="pd-btn pd-unequip-all" title="Unequip All"><i class="fas fa-times-circle"></i></button>
               </div>
             </div>
@@ -146,8 +154,8 @@
             <span class="attr-quick-val">{{speed.land}}</span>
             <span class="attr-quick-lbl">Speed</span>
           </div>
-          <div class="attr-quick-box initiative-roll" title="Roll Initiative">
-            <span class="attr-quick-val">Lvl {{level}}</span>
+          <div class="attr-quick-box initiative-roll" title="Roll Initiative ({{initiative.label}})">
+            <span class="attr-quick-val">{{initiative.modStr}}</span>
             <span class="attr-quick-lbl">Initiative</span>
           </div>
         </div>
@@ -166,7 +174,7 @@
           <div class="stat" data-ability="{{this.key}}" title="Click to roll {{this.fullLabel}} check">
             <span class="stat-label">{{this.label}}</span>
             {{#if ../isManualMode}}
-            <input type="number" class="ability-input" name="system.abilities.{{this.key}}.value" value="{{this.value}}" data-ability="{{this.key}}">
+            <input type="number" class="ability-input" value="{{this.value}}" data-ability="{{this.key}}">
             {{else}}
             <span class="stat-value">{{this.value}}</span>
             {{/if}}
@@ -462,11 +470,11 @@
               <button class="strike-attack" data-strike-idx="{{@index}}" data-variant="0" title="Strike (1st attack)">
                 <i class="fas fa-dice-d20"></i>
               </button>
-              <button class="strike-attack strike-map" data-strike-idx="{{@index}}" data-variant="1" title="2nd Attack (MAP)">
-                <i class="fas fa-dice-d20"></i><span class="map-label">2</span>
+              <button class="strike-attack strike-map" data-strike-idx="{{@index}}" data-variant="1" title="2nd Attack ({{#if this.map2}}{{this.map2}}{{else}}MAP{{/if}})">
+                <i class="fas fa-dice-d20"></i><span class="map-label">{{#if this.map2}}{{this.map2}}{{else}}2{{/if}}</span>
               </button>
-              <button class="strike-attack strike-map" data-strike-idx="{{@index}}" data-variant="2" title="3rd Attack (MAP)">
-                <i class="fas fa-dice-d20"></i><span class="map-label">3</span>
+              <button class="strike-attack strike-map" data-strike-idx="{{@index}}" data-variant="2" title="3rd Attack ({{#if this.map3}}{{this.map3}}{{else}}MAP{{/if}})">
+                <i class="fas fa-dice-d20"></i><span class="map-label">{{#if this.map3}}{{this.map3}}{{else}}3{{/if}}</span>
               </button>
               <button class="strike-damage" data-strike-idx="{{@index}}" title="Damage">
                 <i class="fas fa-bolt"></i>
@@ -550,6 +558,11 @@
       <div class="tab" data-tab="inventory">
         <h2>Inventory</h2>
 
+        <div class="velvet-search">
+          <i class="fas fa-search"></i>
+          <input type="search" class="velvet-search-input" data-scope="inventory" placeholder="Search items..." aria-label="Search inventory">
+        </div>
+
         <div class="inv-filter-bar">
           <button class="inv-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
           <button class="inv-filter" data-filter="weapons"><i class="fas fa-sword"></i> Weapons</button>
@@ -563,42 +576,51 @@
           <button class="inv-filter" data-filter="containers"><i class="fas fa-box"></i> Containers</button>
         </div>
 
-        <!-- Currency -->
+        <!-- Currency (PF2e coins are treasure items — edited via the coin API, not form paths) -->
         <div class="currency-bar">
           <div class="coin coin-pp">
             <i class="fas fa-coins"></i>
-            <input type="number" class="coin-input" name="system.details.pp.value" value="{{currency.pp}}" min="0" placeholder="0">
+            <input type="number" class="coin-input" data-denomination="pp" value="{{currency.pp}}" min="0" placeholder="0" aria-label="Platinum pieces">
             <span class="coin-label">PP</span>
           </div>
           <div class="coin coin-gp">
             <i class="fas fa-coins"></i>
-            <input type="number" class="coin-input" name="system.details.gp.value" value="{{currency.gp}}" min="0" placeholder="0">
+            <input type="number" class="coin-input" data-denomination="gp" value="{{currency.gp}}" min="0" placeholder="0" aria-label="Gold pieces">
             <span class="coin-label">GP</span>
           </div>
           <div class="coin coin-sp">
             <i class="fas fa-coins"></i>
-            <input type="number" class="coin-input" name="system.details.sp.value" value="{{currency.sp}}" min="0" placeholder="0">
+            <input type="number" class="coin-input" data-denomination="sp" value="{{currency.sp}}" min="0" placeholder="0" aria-label="Silver pieces">
             <span class="coin-label">SP</span>
           </div>
           <div class="coin coin-cp">
             <i class="fas fa-coins"></i>
-            <input type="number" class="coin-input" name="system.details.cp.value" value="{{currency.cp}}" min="0" placeholder="0">
+            <input type="number" class="coin-input" data-denomination="cp" value="{{currency.cp}}" min="0" placeholder="0" aria-label="Copper pieces">
             <span class="coin-label">CP</span>
           </div>
         </div>
 
         {{#each inventory}}
-        <div class="inventory-category" data-category="{{@key}}">
+        <div class="inventory-category {{#unless this.items.length}}is-empty{{/unless}}" data-category="{{@key}}">
           <h3 class="category-header">{{this.label}} <span class="item-create" data-type="{{this.type}}" title="Add {{this.label}}"><i class="fas fa-plus"></i></span></h3>
+          {{#unless this.items.length}}
+          <div class="velvet-empty-state">
+            <i class="fas fa-box-open"></i>
+            <span>No {{this.label}} yet — use <i class="fas fa-plus"></i> to add one</span>
+          </div>
+          {{/unless}}
           <div class="inv-grid">
             {{#each this.items}}
-            <div class="inv-slot" data-item-id="{{this.id}}" draggable="true" title="{{this.name}}">
+            <div class="inv-slot" data-item-id="{{this.id}}" data-rarity="{{this.rarity}}" draggable="true" title="{{this.name}}">
               <img class="inv-slot-img" src="{{this.img}}">
               {{#if this.quantity}}<span class="inv-slot-qty">{{this.quantity}}</span>{{/if}}
               {{#if this.equipped}}<span class="inv-slot-equipped"><i class="fas fa-shield-alt"></i></span>{{/if}}
               {{#if this.invested}}<span class="inv-slot-invested"><i class="fas fa-gem"></i></span>{{/if}}
+              {{#if this.inContainer}}<span class="inv-slot-contained" title="Stored in a container"><i class="fas fa-box"></i></span>{{/if}}
               <div class="inv-slot-hover">
                 <span class="inv-slot-name">{{this.name}}</span>
+                {{#if this.meta}}<span class="inv-slot-meta">{{this.meta}}</span>{{/if}}
+                {{#if this.traits}}<span class="inv-slot-traits">{{this.traits}}</span>{{/if}}
                 <div class="inv-slot-actions">
                   <span class="item-sound-config {{#if this.hasSound}}has-sound{{/if}}" title="Configure Sound"><i class="fas fa-music"></i></span>
                   <span class="item-roll" title="Use"><i class="fas fa-dice-d20"></i></span>
@@ -618,8 +640,23 @@
       <div class="tab" data-tab="spells">
         <h2>Spells</h2>
 
+        {{#if spellcasting.length}}
+        <div class="velvet-search">
+          <i class="fas fa-search"></i>
+          <input type="search" class="velvet-search-input" data-scope="spells" placeholder="Search spells..." aria-label="Search spells">
+        </div>
+        {{/if}}
+
+        {{#unless spellcasting.length}}
+        <div class="velvet-empty-state velvet-empty-state--tall">
+          <i class="fas fa-hat-wizard"></i>
+          <span>No spellcasting entries</span>
+          <small>This character has no magical traditions. Spellcasting added on the PF2e sheet will appear here.</small>
+        </div>
+        {{/unless}}
+
         {{#each spellcasting}}
-        <div class="spellcasting-entry" data-item-id="{{this.id}}">
+        <div class="spellcasting-entry" data-item-id="{{this.id}}" data-tradition="{{this.tradition}}">
           <h3 class="spell-entry-header">
             {{this.name}}
             <span class="spell-tradition">({{this.tradition}})</span>
@@ -755,6 +792,11 @@
       <div class="tab" data-tab="feats">
         <h2>Feats <span class="item-create" data-type="feat" title="Add Feat"><i class="fas fa-plus"></i></span></h2>
 
+        <div class="velvet-search">
+          <i class="fas fa-search"></i>
+          <input type="search" class="velvet-search-input" data-scope="feats" placeholder="Search feats..." aria-label="Search feats">
+        </div>
+
         <div class="feat-filter-bar">
           <button class="feat-filter active" data-filter="all"><i class="fas fa-th"></i> All</button>
           <button class="feat-filter" data-filter="ancestry"><i class="fas fa-dna"></i> Ancestry</button>
@@ -854,6 +896,14 @@
       <!-- EFFECTS TAB -->
       <div class="tab" data-tab="effects">
         <h2>Effects & Conditions</h2>
+
+        {{#unless effects.length}}
+        <div class="velvet-empty-state velvet-empty-state--tall">
+          <i class="fas fa-shield-alt"></i>
+          <span>Unburdened</span>
+          <small>No active effects or conditions. Effects applied in play will appear here.</small>
+        </div>
+        {{/unless}}
 
         <div class="effects-list">
           {{#each effects}}

@@ -42,6 +42,7 @@
     "scripts/velvet-animations.mjs"
   ],
   "styles": [
+    "styles/velvet-fonts.css",
     "styles/velvet-sheet.css"
   ],
   "manifest": "https://raw.githubusercontent.com/gmredvelvet-rgb/pf2e-velvet-sheet/main/module.json",
