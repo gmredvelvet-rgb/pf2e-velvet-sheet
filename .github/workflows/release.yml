@@ -32,7 +32,7 @@ jobs:
           zip -r module.zip . \
             --exclude ".git/*" \
             --exclude ".github/*" \
-            --exclude "*.md" \
+            --exclude "IMPROVEMENT_PLAN.md" \
             --exclude ".gitignore" \
             --exclude "*.tmp.json"
 
