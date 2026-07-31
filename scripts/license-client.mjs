@@ -23,6 +23,18 @@ const SK = {
   features:       `${OWN_MODULE_ID}:features`,
 };
 
+// ── Soft gate ─────────────────────────────────────────────────────────────────
+// This module is NEVER locked: the sheet works fully with or without a licence,
+// and only shows a periodic reminder (same model as Velvet Journals / VND
+// Enhanced 1.4.1). Nothing here may ever block the sheet.
+const REMINDER_MS  = 10 * 60 * 1000;  // remind every 10 minutes
+const AUTO_HIDE_MS = 30 * 1000;       // reminder card lingers 30s then leaves
+
+export function isWorldLicensed() {
+  try { return game.settings.get(OWN_MODULE_ID, 'worldLicensed') === true; }
+  catch { return false; }
+}
+
 export class VelvetLicenseClient {
   static #instance = null;
 
@@ -128,6 +140,7 @@ export class VelvetLicenseClient {
     this.#startHeartbeat();
     Hooks.callAll('velvet-sheet.activate');
     game.settings?.set?.(OWN_MODULE_ID, 'worldLicensed', true).catch(() => {});
+    VelvetLicenseUI.stopReminder();
     ui.notifications?.info(`Velvet PF2e Sheet: Connected as ${result.tier} subscriber. Welcome!`);
   }
 
@@ -273,16 +286,9 @@ export class VelvetLicenseClient {
   }
 
   #handleHeartbeatFailure() {
-    const timeSinceLast = Date.now() - this.#lastHeartbeat;
-    if (timeSinceLast > this.#gracePeriodMs) {
-      if (!this.#degraded) {
-        this.#degraded = true;
-        if (game.user?.isGM) {
-          game.settings?.set?.(OWN_MODULE_ID, 'worldLicensed', false).catch(() => {});
-          ui.notifications?.warn('Velvet PF2e Sheet: License server unreachable. Sheet locked until reconnected.');
-        }
-      }
-    }
+    // SOFT GATE: never lock the sheet, never nag a paying customer over a network
+    // blip. The sheet keeps working; the heartbeat simply retries on its interval.
+    this.#degraded = true;
   }
 
   async #apiCall(endpoint, body, method = 'POST') {
@@ -390,7 +396,36 @@ export class VelvetLicenseError extends Error {
 }
 
 export class VelvetLicenseUI {
-  static show() {
+  static #reminderTimer = null;
+  static #hideTimer     = null;
+
+  // Periodic soft reminder (every 10 min, GM-only, auto-hiding). Re-checks the
+  // licence each tick so connecting mid-session silences it without a reload.
+  static startReminder() {
+    VelvetLicenseUI.#clearReminderTimer();
+    if (isWorldLicensed()) return;
+    VelvetLicenseUI.#reminderTimer = setInterval(() => {
+      if (isWorldLicensed()) { VelvetLicenseUI.stopReminder(); return; }
+      VelvetLicenseUI.show({ autoHide: true });
+    }, REMINDER_MS);
+  }
+
+  static stopReminder() {
+    VelvetLicenseUI.#clearReminderTimer();
+    document.getElementById('velvet-sheet-license-prompt')?.remove();
+  }
+
+  static #clearReminderTimer() {
+    if (VelvetLicenseUI.#reminderTimer) clearInterval(VelvetLicenseUI.#reminderTimer);
+    VelvetLicenseUI.#reminderTimer = null;
+  }
+
+  static #cancelAutoHide() {
+    if (VelvetLicenseUI.#hideTimer) clearTimeout(VelvetLicenseUI.#hideTimer);
+    VelvetLicenseUI.#hideTimer = null;
+  }
+
+  static show({ autoHide = false } = {}) {
     if (!game.user?.isGM) return;
 
     const id = 'velvet-sheet-license-prompt';
@@ -410,13 +445,8 @@ export class VelvetLicenseUI {
         <strong style="color:#c89b3c;font-size:1rem">Velvet PF2e Sheet</strong>
       </div>
       <p style="font-size:.85rem;color:#a09080;margin-bottom:16px;line-height:1.4">
-        Connect your Patreon account to unlock the character sheet.
+        You're using Velvet PF2e Sheet unlicensed — the full sheet is unlocked. If it's useful at your table, please support development by connecting your Patreon.
       </p>
-      <div style="margin-bottom:12px;padding:10px 12px;border-radius:6px;
-                  border:1px solid #c89b3c55;background:#c89b3c14;font-size:.85rem;line-height:1.45">
-        <strong style="color:#c89b3c">Why am I being asked to reconnect?</strong><br/>
-        We changed how Patreon subscriptions are verified, so activations made before the change no longer validate. Reconnecting your account once puts it right. This is not a new charge and not a price change: your Patreon subscription is untouched, you will not be billed again, and you keep your installation slots. Only the authorisation is renewed.
-      </div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <button id="velvet-connect-btn" style="
           background:#c89b3c;color:#1a1a2e;border:none;border-radius:8px;
@@ -429,17 +459,18 @@ export class VelvetLicenseUI {
         <button id="velvet-dismiss-btn" style="
           background:none;border:none;color:#605040;font-size:.75rem;cursor:pointer;
           text-align:right;padding:0
-        ">Dismiss</button>
+        ">Later</button>
       </div>
     `;
 
     el.querySelector('#velvet-connect-btn').addEventListener('click', async () => {
+      VelvetLicenseUI.#cancelAutoHide();
       const btn = el.querySelector('#velvet-connect-btn');
       btn.textContent = 'Opening Patreon...';
       btn.disabled = true;
       try {
         const success = await VelvetLicenseClient.instance.startOAuth();
-        if (success) el.remove();
+        if (success) { VelvetLicenseUI.stopReminder(); el.remove(); }
         else { btn.textContent = 'Connect Patreon'; btn.disabled = false; }
       } catch (e) {
         btn.textContent = 'Connect Patreon'; btn.disabled = false;
@@ -448,13 +479,22 @@ export class VelvetLicenseUI {
     });
 
     el.querySelector('#velvet-code-btn').addEventListener('click', () => {
+      VelvetLicenseUI.#cancelAutoHide();
       VelvetLicenseUI.showCodeInput();
       el.remove();
     });
 
     el.querySelector('#velvet-dismiss-btn').addEventListener('click', () => el.remove());
+    el.addEventListener('pointerenter', () => VelvetLicenseUI.#cancelAutoHide());
 
     document.body.appendChild(el);
+
+    if (autoHide) {
+      VelvetLicenseUI.#hideTimer = setTimeout(() => {
+        VelvetLicenseUI.#hideTimer = null;
+        el.remove();
+      }, AUTO_HIDE_MS);
+    }
   }
 
   static showCodeInput() {

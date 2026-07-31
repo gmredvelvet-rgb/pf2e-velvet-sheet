@@ -1135,10 +1135,9 @@ class VelvetCharacterSheet extends ActorSheet {
   activateListeners(html) {
     super.activateListeners(html);
 
-    if (!game.settings.get(VELVET_MODULE_ID, "worldLicensed")) {
-      this._injectLicenseOverlay(html);
-      return;
-    }
+    // SOFT GATE: the sheet is never locked. Licensing only drives a periodic
+    // reminder (see the ready hook + VelvetLicenseUI.startReminder). No overlay,
+    // no early return — the full sheet always renders.
 
     // Manual tab navigation
     html.find(".nav-item").click(ev => {
@@ -2808,17 +2807,23 @@ Hooks.once("init", () => {
  * Runs once per actor when Foundry is ready.
  */
 Hooks.once("ready", () => {
-  // Initialize license — if already authenticated, tokens are validated from localStorage
+  // Initialize license (SOFT GATE — never blocks the sheet). If the token is
+  // valid, mark the world licensed and stay quiet; otherwise start the periodic
+  // reminder (one nudge ~8s after load, then every 10 min, all auto-hiding).
   VelvetLicenseClient.instance.initialize().then(tokenValid => {
-    const worldLicensed = game.settings.get(VELVET_MODULE_ID, "worldLicensed");
-    if (!tokenValid && !worldLicensed) {
-      VelvetLicenseUI.show();
-    } else if (tokenValid && !worldLicensed && game.user?.isGM) {
-      // Token is valid but world setting hasn't been set yet (e.g. new GM client)
+    if (tokenValid && game.user?.isGM) {
       game.settings.set(VELVET_MODULE_ID, "worldLicensed", true).catch(() => {});
     }
+    if (game.user?.isGM && !game.settings.get(VELVET_MODULE_ID, "worldLicensed")) {
+      setTimeout(() => {
+        if (!game.settings.get(VELVET_MODULE_ID, "worldLicensed")) VelvetLicenseUI.show({ autoHide: true });
+      }, 8000);
+      VelvetLicenseUI.startReminder();
+    }
   }).catch(() => {
-    if (!game.settings.get(VELVET_MODULE_ID, "worldLicensed")) VelvetLicenseUI.show();
+    if (game.user?.isGM && !game.settings.get(VELVET_MODULE_ID, "worldLicensed")) {
+      VelvetLicenseUI.startReminder();
+    }
   });
 
   // Only the first GM runs migration
